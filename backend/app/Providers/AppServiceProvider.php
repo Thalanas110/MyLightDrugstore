@@ -13,17 +13,23 @@ final class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(ModuleRegistry::class, function (Application $application): ModuleRegistry {
-            $providerClasses = config('modules.providers', []);
+            $entryPoints = config('modules.entry_points', []);
 
-            if (! is_array($providerClasses) || ! array_is_list($providerClasses)) {
-                throw new LogicException('The module providers configuration must be a list.');
+            if (! is_array($entryPoints) || ! array_is_list($entryPoints)) {
+                throw new LogicException('The module entry points configuration must be a list.');
             }
 
             $providers = [];
 
-            foreach ($providerClasses as $providerClass) {
-                if (! is_string($providerClass)) {
-                    throw new LogicException('Every configured module provider must be a class name.');
+            foreach ($entryPoints as $entryPoint) {
+                if (! is_string($entryPoint) || ! is_file($entryPoint)) {
+                    throw new LogicException('Every configured module entry point must be an existing file.');
+                }
+
+                $providerClass = require $entryPoint;
+
+                if (! is_string($providerClass) || ! class_exists($providerClass)) {
+                    throw new LogicException("The module entry point [{$entryPoint}] must return a provider class name.");
                 }
 
                 $provider = $application->make($providerClass);
