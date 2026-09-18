@@ -5,9 +5,10 @@ declare(strict_types=1);
 use App\Http\Controllers\Api\PendingApiEndpointController;
 use App\Modules\Sales\Presentation\CreateSaleController;
 use App\Modules\Sales\Presentation\SaleDetailController;
+use App\Modules\Sales\Presentation\SaleListController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/sales', PendingApiEndpointController::class)
+Route::get('/sales', SaleListController::class)
     ->middleware('auth:web')
     ->name('api.v1.sales.index');
 Route::post('/sales', CreateSaleController::class)
