@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Testing\TestResponse;
 use Tests\Support\EncryptedTransportRequestBuilder;
+use Tests\Support\EncryptedTransportResponseReader;
 use Tests\TestCase;
 
 final class TransportRequestRejectionTest extends TestCase
@@ -55,14 +56,24 @@ final class TransportRequestRejectionTest extends TestCase
 
         foreach ($requests as $case => $request) {
             $response = $this->sendEncrypted($path, $request['header'], $request['envelope']);
-            $response->assertStatus(400)
-                ->assertJsonPath('error.code', 'transport_error')
-                ->assertJsonPath('error.message', 'The encrypted request could not be processed.');
+            $response->assertStatus(400);
 
-            $requestId = $response->json('error.requestId');
+            if (in_array($case, ['invalid tag', 'wrong AAD'], true)) {
+                $descriptor = (new EncryptedTransportResponseReader)->read($response, $request['aesKey'], 'POST', $path);
+                $logicalError = json_decode($descriptor['body'], true, 512, JSON_THROW_ON_ERROR);
+                $error = is_array($logicalError) ? ($logicalError['error'] ?? null) : null;
+            } else {
+                $error = $response->json('error');
+            }
+
+            $this->assertIsArray($error, $case);
+            $this->assertSame('transport_error', $error['code'] ?? null, $case);
+            $this->assertSame('The encrypted request could not be processed.', $error['message'] ?? null, $case);
+
+            $requestId = $error['requestId'] ?? null;
             $this->assertIsString($requestId, $case);
             $this->assertSame($requestId, $response->headers->get('X-Request-ID'), $case);
-            $this->assertSame(['code', 'message', 'requestId'], array_keys($response->json('error')), $case);
+            $this->assertSame(['code', 'message', 'requestId'], array_keys($error), $case);
         }
 
         $this->assertSame(0, $controllerCalls);

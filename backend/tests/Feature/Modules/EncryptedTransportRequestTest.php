@@ -12,6 +12,7 @@ use App\Modules\Transport\Presentation\Middleware\DecryptTransportRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Tests\Support\EncryptedTransportResponseReader;
 use Tests\TestCase;
 
 final class EncryptedTransportRequestTest extends TestCase
@@ -54,10 +55,18 @@ final class EncryptedTransportRequestTest extends TestCase
             'ciphertext' => $codec->encode($encrypted->ciphertext.$encrypted->tag),
         ], JSON_THROW_ON_ERROR);
 
-        $this->call('POST', '/api/v1/transport/test-echo', [], [], [], [
+        $response = $this->call('POST', '/api/v1/transport/test-echo', [], [], [], [
             'CONTENT_TYPE' => 'application/json',
             'HTTP_X_TRANSPORT_KEY' => 'transport-current.'.$codec->encode($wrappedKey),
-        ], $envelope)->assertOk()->assertExactJson(['data' => $payload]);
+        ], $envelope)->assertOk();
+
+        $descriptor = (new EncryptedTransportResponseReader)->read(
+            $response,
+            $aesKey,
+            'POST',
+            '/api/v1/transport/test-echo',
+        );
+        $this->assertSame('{"data":{"medicineId":42,"note":"test request"}}', $descriptor['body']);
     }
 
     private static function pem(string $type, string $encodedKey): string

@@ -23,6 +23,30 @@ final class TransportEnvelopeCodec
     public function __construct(private Base64UrlCodec $base64UrlCodec) {}
 
     /**
+     * @return array{version: int, algorithm: string, keyId: string, iv: string, ciphertext: string}
+     */
+    public function encode(TransportEnvelope $envelope): array
+    {
+        $ciphertextAndTag = $envelope->encrypted->ciphertext.$envelope->encrypted->tag;
+
+        if ($envelope->version !== self::VERSION || $envelope->algorithm !== self::ALGORITHM
+            || preg_match('/\A[A-Za-z0-9][A-Za-z0-9._-]{0,63}\z/', $envelope->keyId) !== 1
+            || strlen($envelope->encrypted->nonce) !== self::NONCE_LENGTH
+            || strlen($envelope->encrypted->tag) !== self::TAG_LENGTH
+            || strlen($ciphertextAndTag) > self::MAX_CIPHERTEXT_LENGTH) {
+            throw self::invalidEnvelope();
+        }
+
+        return [
+            'version' => $envelope->version,
+            'algorithm' => $envelope->algorithm,
+            'keyId' => $envelope->keyId,
+            'iv' => $this->base64UrlCodec->encode($envelope->encrypted->nonce),
+            'ciphertext' => $this->base64UrlCodec->encode($ciphertextAndTag),
+        ];
+    }
+
+    /**
      * @param  array<string, mixed>  $payload
      */
     public function decode(array $payload): TransportEnvelope

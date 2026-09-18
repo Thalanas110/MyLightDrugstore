@@ -6,6 +6,7 @@ namespace Tests\Unit\Modules\Transport;
 
 use App\Modules\Transport\Domain\Crypto\AesGcmCiphertext;
 use App\Modules\Transport\Domain\Crypto\Base64UrlCodec;
+use App\Modules\Transport\Domain\Crypto\TransportEnvelope;
 use App\Modules\Transport\Domain\Crypto\TransportEnvelopeCodec;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -32,6 +33,25 @@ final class TransportEnvelopeCodecTest extends TestCase
         $this->assertSame(12, strlen($envelope->encrypted->nonce));
         $this->assertSame(substr($encrypted, 0, -16), $envelope->encrypted->ciphertext);
         $this->assertSame(substr($encrypted, -16), $envelope->encrypted->tag);
+    }
+
+    public function test_encode_builds_the_documented_wire_shape_and_round_trips(): void
+    {
+        $codec = new Base64UrlCodec;
+        $envelopeCodec = new TransportEnvelopeCodec($codec);
+        $encrypted = new AesGcmCiphertext(random_bytes(12), 'encrypted bytes', str_repeat('t', 16));
+        $envelope = new TransportEnvelope(1, 'A256GCM', 'transport-2026-01', $encrypted);
+
+        $wire = $envelopeCodec->encode($envelope);
+
+        $this->assertSame(['version', 'algorithm', 'keyId', 'iv', 'ciphertext'], array_keys($wire));
+        $this->assertSame(1, $wire['version']);
+        $this->assertSame('A256GCM', $wire['algorithm']);
+        $this->assertSame('transport-2026-01', $wire['keyId']);
+        $this->assertSame($encrypted->nonce, $codec->decode($wire['iv']));
+        $decoded = $envelopeCodec->decode($wire);
+        $this->assertSame($encrypted->ciphertext, $decoded->encrypted->ciphertext);
+        $this->assertSame($encrypted->tag, $decoded->encrypted->tag);
     }
 
     #[DataProvider('invalidEnvelopes')]

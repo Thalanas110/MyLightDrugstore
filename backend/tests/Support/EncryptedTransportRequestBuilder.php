@@ -17,6 +17,7 @@ final class EncryptedTransportRequestBuilder
      * @param  array<string, mixed>  $payload
      * @return array{
      *     header: string,
+     *     aesKey: string,
      *     envelope: array{version: int, algorithm: string, keyId: string, iv: string, ciphertext: string}
      * }
      */
@@ -37,6 +38,7 @@ final class EncryptedTransportRequestBuilder
 
         return [
             'header' => self::KEY_ID.'.'.$codec->encode($wrappedKey),
+            'aesKey' => $aesKey,
             'envelope' => [
                 'version' => 1,
                 'algorithm' => 'A256GCM',

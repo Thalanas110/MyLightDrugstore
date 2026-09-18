@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Http;
 
 use Tests\Support\EncryptedTransportRequestBuilder;
+use Tests\Support\EncryptedTransportResponseReader;
 use Tests\TestCase;
 
 final class PendingApiEndpointTest extends TestCase
@@ -19,14 +20,16 @@ final class PendingApiEndpointTest extends TestCase
             'HTTP_X_TRANSPORT_KEY' => $encrypted['header'],
         ]);
 
-        $response->assertStatus(501)
-            ->assertExactJson([
-                'error' => [
-                    'code' => 'not_implemented',
-                    'message' => 'This endpoint is registered but not implemented yet.',
-                    'requestId' => $requestId,
-                ],
-            ])
-            ->assertHeader('X-Request-ID', $requestId);
+        $response->assertStatus(501)->assertHeader('X-Request-ID', $requestId);
+        $descriptor = (new EncryptedTransportResponseReader)->read($response, $encrypted['aesKey'], 'GET', $path);
+        $errorResponse = json_decode($descriptor['body'], true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame([
+            'error' => [
+                'code' => 'not_implemented',
+                'message' => 'This endpoint is registered but not implemented yet.',
+                'requestId' => $requestId,
+            ],
+        ], $errorResponse);
     }
 }

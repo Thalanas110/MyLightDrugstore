@@ -9,6 +9,7 @@ use App\Modules\Transport\Domain\Crypto\Base64UrlCodec;
 use App\Modules\Transport\Domain\Crypto\RequestAdditionalData;
 use App\Modules\Transport\Domain\Crypto\RsaOaepKeyCipher;
 use App\Modules\Transport\Domain\Crypto\TransportAuthenticationFailed;
+use App\Modules\Transport\Domain\Crypto\TransportEnvelope;
 use App\Modules\Transport\Domain\Crypto\TransportEnvelopeCodec;
 use App\Modules\Transport\Domain\Crypto\TransportKeyExchangeFailed;
 use App\Modules\Transport\Domain\Crypto\TransportKeyRing;
@@ -22,6 +23,8 @@ use Symfony\Component\HttpFoundation\Response;
 final class DecryptTransportRequest
 {
     public const SESSION_KEY_ATTRIBUTE = 'transport_session_key';
+
+    public const SESSION_KEY_ID_ATTRIBUTE = 'transport_session_key_id';
 
     public function __construct(
         private TransportKeyRing $transportKeyRing,
@@ -53,6 +56,7 @@ final class DecryptTransportRequest
             $keyMaterial = $this->transportKeyRing->forDecryption($keyId);
             $aesKey = $this->rsaOaepKeyCipher->unwrap($keyMaterial->privateKeyPem, $wrappedKey);
             $request->attributes->set(self::SESSION_KEY_ATTRIBUTE, $aesKey);
+            $request->attributes->set(self::SESSION_KEY_ID_ATTRIBUTE, $keyId);
 
             if ($request->getContent() === '') {
                 $payload = [];
@@ -68,13 +72,13 @@ final class DecryptTransportRequest
                 $payload = $this->payloadParser->parse($plaintext);
             }
         } catch (InvalidArgumentException|TransportAuthenticationFailed|TransportKeyExchangeFailed|UnknownTransportKeyId) {
-            return $this->rejected($request);
+            return $this->encryptResponse($request, $this->rejected($request));
         }
 
         $request->request->replace($payload);
         $request->json()->replace($payload);
 
-        return $next($request);
+        return $this->encryptResponse($request, $next($request));
     }
 
     private function rejected(Request $request): Response
@@ -90,5 +94,41 @@ final class DecryptTransportRequest
         }
 
         return response()->json(['error' => $error], Response::HTTP_BAD_REQUEST);
+    }
+
+    private function encryptResponse(Request $request, Response $response): Response
+    {
+        $aesKey = $request->attributes->get(self::SESSION_KEY_ATTRIBUTE);
+        $keyId = $request->attributes->get(self::SESSION_KEY_ID_ATTRIBUTE);
+        $contentType = $response->headers->get('Content-Type');
+
+        if (! is_string($aesKey) || ! is_string($keyId) || ! is_string($contentType)
+            || ! str_contains(strtolower($contentType), 'json')
+            || in_array($response->getStatusCode(), [Response::HTTP_NO_CONTENT, Response::HTTP_NOT_MODIFIED], true)) {
+            return $response;
+        }
+
+        $body = $response->getContent();
+
+        if (! is_string($body)) {
+            return $response;
+        }
+
+        $descriptor = json_encode([
+            'contentType' => $contentType,
+            'headers' => [],
+            'body' => $body,
+            'bodyEncoding' => 'utf8',
+        ], JSON_THROW_ON_ERROR);
+        $additionalData = RequestAdditionalData::fromRequestTarget($request->method(), $request->getRequestUri());
+        $encrypted = $this->authenticatedEncryptor->encrypt($aesKey, $descriptor, $additionalData);
+        $envelope = new TransportEnvelope(1, 'A256GCM', $keyId, $encrypted);
+        $encodedEnvelope = json_encode($this->envelopeCodec->encode($envelope), JSON_THROW_ON_ERROR);
+        $response->setContent($encodedEnvelope);
+        $response->headers->set('Content-Type', 'application/json');
+        $response->headers->remove('Content-Length');
+        $response->headers->remove('Content-Encoding');
+
+        return $response;
     }
 }
