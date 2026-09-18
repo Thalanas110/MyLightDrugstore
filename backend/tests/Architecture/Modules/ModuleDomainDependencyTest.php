@@ -7,7 +7,7 @@ namespace Tests\Architecture\Modules;
 use FilesystemIterator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
-use Tests\Architecture\Support\ForbiddenDomainDependencyScanner;
+use Tests\Architecture\Support\ModuleDependencyScanner;
 use Tests\TestCase;
 
 final class ModuleDomainDependencyTest extends TestCase
@@ -34,7 +34,7 @@ final class ModuleDomainDependencyTest extends TestCase
                     continue;
                 }
 
-                foreach (ForbiddenDomainDependencyScanner::find($source) as $dependency) {
+                foreach (ModuleDependencyScanner::findDomainViolations($source) as $dependency) {
                     $violations[] = $domainFile->getPathname().': '.$dependency;
                 }
             }
@@ -61,7 +61,7 @@ final class ModuleDomainDependencyTest extends TestCase
                 'Symfony\Component\HttpFoundation\Request',
                 'App\Modules\Inventory\Infrastructure\StockRepository',
             ],
-            ForbiddenDomainDependencyScanner::find($source),
+            ModuleDependencyScanner::findDomainViolations($source),
         );
     }
 }
