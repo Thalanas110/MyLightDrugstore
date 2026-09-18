@@ -2,7 +2,12 @@
 
 namespace Database\Factories;
 
-use App\Models\User;
+use App\Modules\Identity\Domain\Users\FullName;
+use App\Modules\Identity\Domain\Users\StaffRole;
+use App\Modules\Identity\Domain\Users\Username;
+use App\Modules\Identity\Infrastructure\Persistence\User;
+use App\Modules\Security\Application\SensitiveDataProtector;
+use App\Modules\Security\Application\UsernameLookupDigest;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -15,7 +20,7 @@ class UserFactory extends Factory
     /**
      * The current password being used by the factory.
      */
-    protected static ?string $password;
+    protected static ?string $password = null;
 
     /**
      * Define the model's default state.
@@ -24,22 +29,27 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
+        $username = new Username(fake()->unique()->regexify('[A-Za-z][A-Za-z0-9]{7}'));
+        $fullName = new FullName(fake()->name());
+
         return [
-            'name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
-            'email_verified_at' => now(),
-            'password' => static::$password ??= Hash::make('password'),
+            'username_encrypted' => app(SensitiveDataProtector::class)->encrypt($username->value, 'users.username'),
+            'username_lookup_digest' => app(UsernameLookupDigest::class)->digest($username->value),
+            'full_name_encrypted' => app(SensitiveDataProtector::class)->encrypt($fullName->value, 'users.full_name'),
+            'password' => static::$password ??= Hash::make(Str::random(40)),
+            'role' => StaffRole::Staff,
+            'active' => true,
             'remember_token' => Str::random(10),
         ];
     }
 
-    /**
-     * Indicate that the model's email address should be unverified.
-     */
-    public function unverified(): static
+    public function admin(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'email_verified_at' => null,
-        ]);
+        return $this->state(['role' => StaffRole::Admin]);
+    }
+
+    public function inactive(): static
+    {
+        return $this->state(['active' => false]);
     }
 }
