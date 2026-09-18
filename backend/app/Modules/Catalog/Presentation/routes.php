@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\Api\PendingApiEndpointController;
+use App\Modules\Catalog\Presentation\MedicineArchiveController;
 use App\Modules\Catalog\Presentation\MedicineCreateController;
 use App\Modules\Catalog\Presentation\MedicineDetailController;
 use App\Modules\Catalog\Presentation\MedicineListController;
@@ -23,5 +23,7 @@ Route::patch('/medicines/{medicineId}', MedicineUpdateController::class)
     ->middleware('auth:web')
     ->whereNumber('medicineId')
     ->name('api.v1.medicines.update');
-Route::post('/medicines/{medicineId}/archive', PendingApiEndpointController::class)
+Route::post('/medicines/{medicineId}/archive', MedicineArchiveController::class)
+    ->middleware('auth:web')
+    ->whereNumber('medicineId')
     ->name('api.v1.medicines.archive');

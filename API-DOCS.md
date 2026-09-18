@@ -259,6 +259,8 @@ Create/update fields are `genericName`, `brandName`, `description`, `dosageForm`
 
 `PATCH /medicines/{medicineId}` accepts one or more of those catalog fields and returns the updated resource. Nullable fields can be cleared with `null`; an empty patch is invalid. The `active` and `stockOnHand` fields cannot be changed here: archive medicines through the archive action and change stock through inventory endpoints.
 
+`POST /medicines/{medicineId}/archive` marks a medicine inactive and returns its resource. Repeating the request leaves it archived and does not change its update timestamp. Existing lots and sales history remain available.
+
 ### Inventory
 
 | Method and path | Permission | Purpose |
