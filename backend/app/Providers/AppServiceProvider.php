@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Modules\ModuleProvider;
 use App\Modules\ModuleRegistry;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\ServiceProvider;
 use LogicException;
 
@@ -47,6 +48,7 @@ final class AppServiceProvider extends ServiceProvider
 
     public function boot(ModuleRegistry $registry): void
     {
+        FormRequest::failOnUnknownFields();
         $registry->register();
     }
 }
