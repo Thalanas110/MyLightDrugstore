@@ -1,6 +1,6 @@
 # MyLightDrugstore API
 
-**Status:** Proposed contract for the refactor. These API endpoints are not implemented yet.
+**Status:** Target contract for the refactor; Laravel implementation is underway. Registered paths without implemented behavior return `501 not_implemented` until their TDD slices replace the placeholders.
 
 This document describes the target API and maps it to the current PHP application. The first release is a single-store pharmacy system for medicine catalog, inventory and receiving, sales, staff accounts, and reports.
 
@@ -254,6 +254,8 @@ The list defaults to active medicines; `active=false` selects archived medicines
 `GET /medicines/{medicineId}` returns the same medicine resource for active or archived records, with stock calculated from unexpired, non-depleted lots. A missing medicine returns `404 not_found`.
 
 Create/update fields are `genericName`, `brandName`, `description`, `dosageForm`, `strength`, `unitPrice`, and `storageLocation`. The server validates lengths and numeric ranges and computes stock totals.
+
+`POST /medicines` returns the created active medicine resource with status `201` and `stockOnHand` of zero. `unitPrice` is a positive decimal string with exactly two fractional digits and a maximum of `99999999.99`. Opening stock is recorded separately with `POST /inventory/receipts`; `initialQuantity` is not a medicine field.
 
 ### Inventory
 
