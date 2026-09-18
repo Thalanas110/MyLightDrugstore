@@ -13,12 +13,11 @@ final class PendingApiEndpointTest extends TestCase
     {
         $requestId = 'req_pending-route';
         $path = '/api/v1/medicines';
-        $encrypted = (new EncryptedTransportRequestBuilder)->build('GET', $path, []);
+        $encrypted = (new EncryptedTransportRequestBuilder)->buildBodyless();
         $response = $this->call('GET', $path, [], [], [], [
-            'CONTENT_TYPE' => 'application/json',
             'HTTP_X_REQUEST_ID' => $requestId,
             'HTTP_X_TRANSPORT_KEY' => $encrypted['header'],
-        ], json_encode($encrypted['envelope'], JSON_THROW_ON_ERROR));
+        ]);
 
         $response->assertStatus(501)
             ->assertExactJson([

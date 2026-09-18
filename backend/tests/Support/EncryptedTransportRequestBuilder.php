@@ -22,17 +22,7 @@ final class EncryptedTransportRequestBuilder
      */
     public function build(string $method, string $path, array $payload, ?string $aadTarget = null): array
     {
-        $fixture = $this->fixture();
-        $publicKeyPem = self::pem('PUBLIC KEY', $fixture['publicKeyBase64']);
-        $privateKeyPem = self::pem('PRIVATE KEY', $fixture['privateKeyBase64']);
-        config()->set('transport.keys', [
-            'current' => [
-                'key_id' => self::KEY_ID,
-                'public_key_base64' => base64_encode($publicKeyPem),
-                'private_key_base64' => base64_encode($privateKeyPem),
-            ],
-            'retiring' => [],
-        ]);
+        [$publicKeyPem] = $this->configureCurrentKey();
 
         $aesKey = random_bytes(32);
         $descriptor = json_encode([
@@ -55,6 +45,41 @@ final class EncryptedTransportRequestBuilder
                 'ciphertext' => $codec->encode($encrypted->ciphertext.$encrypted->tag),
             ],
         ];
+    }
+
+    /**
+     * @return array{header: string, aesKey: string}
+     */
+    public function buildBodyless(): array
+    {
+        [$publicKeyPem] = $this->configureCurrentKey();
+        $aesKey = random_bytes(32);
+        $wrappedKey = (new PhpseclibRsaOaepKeyCipher)->wrap($publicKeyPem, $aesKey);
+
+        return [
+            'header' => self::KEY_ID.'.'.(new Base64UrlCodec)->encode($wrappedKey),
+            'aesKey' => $aesKey,
+        ];
+    }
+
+    /**
+     * @return array{string, string}
+     */
+    private function configureCurrentKey(): array
+    {
+        $fixture = $this->fixture();
+        $publicKeyPem = self::pem('PUBLIC KEY', $fixture['publicKeyBase64']);
+        $privateKeyPem = self::pem('PRIVATE KEY', $fixture['privateKeyBase64']);
+        config()->set('transport.keys', [
+            'current' => [
+                'key_id' => self::KEY_ID,
+                'public_key_base64' => base64_encode($publicKeyPem),
+                'private_key_base64' => base64_encode($privateKeyPem),
+            ],
+            'retiring' => [],
+        ]);
+
+        return [$publicKeyPem, $privateKeyPem];
     }
 
     /**

@@ -21,6 +21,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 final class DecryptTransportRequest
 {
+    public const SESSION_KEY_ATTRIBUTE = 'transport_session_key';
+
     public function __construct(
         private TransportKeyRing $transportKeyRing,
         private RsaOaepKeyCipher $rsaOaepKeyCipher,
@@ -48,17 +50,23 @@ final class DecryptTransportRequest
 
             [$keyId, $encodedWrappedKey] = explode('.', $transportKeyHeader, 2);
             $wrappedKey = $this->base64UrlCodec->decode($encodedWrappedKey);
-            $envelope = $this->envelopeCodec->decode($request->json()->all());
-
-            if ($keyId === '' || ! hash_equals($keyId, $envelope->keyId)) {
-                throw new InvalidArgumentException('Encrypted request is invalid.');
-            }
-
             $keyMaterial = $this->transportKeyRing->forDecryption($keyId);
             $aesKey = $this->rsaOaepKeyCipher->unwrap($keyMaterial->privateKeyPem, $wrappedKey);
-            $additionalData = RequestAdditionalData::fromRequestTarget($request->method(), $request->getRequestUri());
-            $plaintext = $this->authenticatedEncryptor->decrypt($aesKey, $envelope->encrypted, $additionalData);
-            $payload = $this->payloadParser->parse($plaintext);
+            $request->attributes->set(self::SESSION_KEY_ATTRIBUTE, $aesKey);
+
+            if ($request->getContent() === '') {
+                $payload = [];
+            } else {
+                $envelope = $this->envelopeCodec->decode($request->json()->all());
+
+                if ($keyId === '' || ! hash_equals($keyId, $envelope->keyId)) {
+                    throw new InvalidArgumentException('Encrypted request is invalid.');
+                }
+
+                $additionalData = RequestAdditionalData::fromRequestTarget($request->method(), $request->getRequestUri());
+                $plaintext = $this->authenticatedEncryptor->decrypt($aesKey, $envelope->encrypted, $additionalData);
+                $payload = $this->payloadParser->parse($plaintext);
+            }
         } catch (InvalidArgumentException|TransportAuthenticationFailed|TransportKeyExchangeFailed|UnknownTransportKeyId) {
             return $this->rejected($request);
         }

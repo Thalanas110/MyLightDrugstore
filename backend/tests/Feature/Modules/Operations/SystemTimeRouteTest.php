@@ -12,11 +12,10 @@ final class SystemTimeRouteTest extends TestCase
     public function test_versioned_system_time_route_returns_the_utc_api_resource(): void
     {
         $path = '/api/v1/system/time';
-        $encrypted = (new EncryptedTransportRequestBuilder)->build('GET', $path, []);
+        $encrypted = (new EncryptedTransportRequestBuilder)->buildBodyless();
         $response = $this->call('GET', $path, [], [], [], [
-            'CONTENT_TYPE' => 'application/json',
             'HTTP_X_TRANSPORT_KEY' => $encrypted['header'],
-        ], json_encode($encrypted['envelope'], JSON_THROW_ON_ERROR));
+        ]);
 
         $response->assertOk()->assertJsonStructure([
             'data' => ['now'],
