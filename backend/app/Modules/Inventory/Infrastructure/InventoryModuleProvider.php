@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Infrastructure;
 
+use App\Modules\Inventory\Application\InventoryLotQuery;
 use App\Modules\Inventory\Application\InventoryReceiptWriter;
 use App\Modules\Inventory\Application\InventorySummaryQuery;
+use App\Modules\Inventory\Infrastructure\Persistence\EloquentInventoryLotQuery;
 use App\Modules\Inventory\Infrastructure\Persistence\EloquentInventoryReceiptWriter;
 use App\Modules\Inventory\Infrastructure\Persistence\EloquentInventorySummaryQuery;
 use App\Modules\ModuleName;
@@ -22,6 +24,7 @@ final class InventoryModuleProvider implements ModuleProvider
     public function register(Container $container): void
     {
         $container->bind(InventoryReceiptWriter::class, EloquentInventoryReceiptWriter::class);
+        $container->bind(InventoryLotQuery::class, EloquentInventoryLotQuery::class);
         $container->bind(InventorySummaryQuery::class, EloquentInventorySummaryQuery::class);
     }
 }

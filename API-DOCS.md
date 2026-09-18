@@ -263,6 +263,8 @@ Create/update fields are `genericName`, `brandName`, `description`, `dosageForm`
 
 `GET /inventory` lists active medicines with `stockOnHand`, `lowStock`, and `earliestExpiry`. `lowStock=true` selects totals below the configurable threshold (default 30); `false` selects totals at or above it. `expiresBefore` includes medicines with a non-depleted lot expiring on or before that date. `earliestExpiry` is the earliest expiry among non-depleted lots, or `null` when none remain. Inventory lists use the standard `page` and `perPage` metadata.
 
+`GET /inventory/lots` supports `medicineId`, `expiresBefore`, `available`, `page`, and `perPage`. The expiry filter is inclusive. `available=true` selects lots with remaining quantity whose expiry date is today or later in UTC; `available=false` selects depleted or expired lots. Omitting `available` returns both. Results are ordered by expiry date, receipt time, then lot ID. Each item returns `lotId`, `medicineId`, `genericName`, `brandName`, `receivedAt`, `expiresAt`, `quantityReceived`, `quantityRemaining`, and `available`.
+
 Receipt request:
 
 ```json
