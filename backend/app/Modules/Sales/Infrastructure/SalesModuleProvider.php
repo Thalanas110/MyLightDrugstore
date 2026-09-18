@@ -8,9 +8,11 @@ use App\Modules\ModuleName;
 use App\Modules\ModuleProvider;
 use App\Modules\Sales\Application\SaleCreator;
 use App\Modules\Sales\Application\SaleDetailsQuery;
+use App\Modules\Sales\Application\SaleItemAdder;
 use App\Modules\Sales\Application\SaleListQuery;
 use App\Modules\Sales\Infrastructure\Persistence\EloquentSaleCreator;
 use App\Modules\Sales\Infrastructure\Persistence\EloquentSaleDetailsQuery;
+use App\Modules\Sales\Infrastructure\Persistence\EloquentSaleItemAdder;
 use App\Modules\Sales\Infrastructure\Persistence\EloquentSaleListQuery;
 use Illuminate\Contracts\Container\Container;
 
@@ -24,6 +26,7 @@ final class SalesModuleProvider implements ModuleProvider
     public function register(Container $container): void
     {
         $container->bind(SaleCreator::class, EloquentSaleCreator::class);
+        $container->bind(SaleItemAdder::class, EloquentSaleItemAdder::class);
         $container->bind(SaleDetailsQuery::class, EloquentSaleDetailsQuery::class);
         $container->bind(SaleListQuery::class, EloquentSaleListQuery::class);
     }

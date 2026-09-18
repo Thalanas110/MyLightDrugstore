@@ -7,6 +7,7 @@ namespace App\Http\Errors;
 use App\Http\Middleware\AttachRequestId;
 use App\Modules\Inventory\Domain\InsufficientStockException;
 use App\Modules\Sales\Domain\IdempotencyKeyReusedException;
+use App\Modules\Sales\Domain\SaleNotEditableException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -103,6 +104,15 @@ final class ApiErrorResponder
                 Response::HTTP_CONFLICT,
                 'idempotency_key_reused',
                 'The idempotency key was already used for a different request.',
+            );
+        }
+
+        if ($exception instanceof SaleNotEditableException) {
+            return $this->error(
+                $request,
+                Response::HTTP_CONFLICT,
+                'conflict',
+                'The request conflicts with the current resource state.',
             );
         }
 

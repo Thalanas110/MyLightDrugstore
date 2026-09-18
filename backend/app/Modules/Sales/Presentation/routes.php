@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\PendingApiEndpointController;
+use App\Modules\Sales\Presentation\AddSaleItemController;
 use App\Modules\Sales\Presentation\CreateSaleController;
 use App\Modules\Sales\Presentation\SaleDetailController;
 use App\Modules\Sales\Presentation\SaleListController;
@@ -14,7 +15,7 @@ Route::get('/sales', SaleListController::class)
 Route::post('/sales', CreateSaleController::class)
     ->middleware('auth:web')
     ->name('api.v1.sales.store');
-Route::post('/sales/{saleId}/items', PendingApiEndpointController::class)
+Route::post('/sales/{saleId}/items', AddSaleItemController::class)
     ->middleware('auth:web')
     ->name('api.v1.sales.items.store');
 Route::delete('/sales/{saleId}/items/{saleItemId}', PendingApiEndpointController::class)

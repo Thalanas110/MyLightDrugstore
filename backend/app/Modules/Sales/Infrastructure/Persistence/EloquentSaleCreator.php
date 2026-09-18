@@ -13,6 +13,7 @@ use App\Modules\Sales\Application\CreateSaleItem;
 use App\Modules\Sales\Application\SaleCreator;
 use App\Modules\Sales\Application\SaleDetails;
 use App\Modules\Sales\Domain\IdempotencyKeyReusedException;
+use App\Modules\Sales\Domain\SaleAmount;
 use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
@@ -89,7 +90,7 @@ final class EloquentSaleCreator implements SaleCreator
             }
 
             $saleItems = [];
-            $totalCents = 0;
+            $total = SaleAmount::zero();
 
             foreach ($command->items as $item) {
                 $unitPrice = $unitPrices[$item->medicineId] ?? null;
@@ -98,14 +99,13 @@ final class EloquentSaleCreator implements SaleCreator
                     throw new LogicException('The active medicine price query omitted a requested medicine.');
                 }
 
-                $unitPriceCents = $this->toCents($unitPrice);
-                $lineTotalCents = $unitPriceCents * $item->quantity;
-                $totalCents += $lineTotalCents;
+                $lineTotal = SaleAmount::fromDecimal($unitPrice)->multiply($item->quantity);
+                $total = $total->add($lineTotal);
                 $saleItems[] = [
                     'medicineId' => $item->medicineId,
                     'quantity' => $item->quantity,
                     'unitPrice' => $unitPrice,
-                    'lineTotal' => $this->fromCents($lineTotalCents),
+                    'lineTotal' => $lineTotal->toDecimal(),
                 ];
             }
 
@@ -113,7 +113,7 @@ final class EloquentSaleCreator implements SaleCreator
                 'created_by_user_id' => $command->actorUserId,
                 'state' => 'open',
                 'payment_status' => 'unpaid',
-                'total' => $this->fromCents($totalCents),
+                'total' => $total->toDecimal(),
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
@@ -163,7 +163,7 @@ final class EloquentSaleCreator implements SaleCreator
             $details = $this->toSaleDetails(
                 $sale,
                 $command->actorUserId,
-                $this->fromCents($totalCents),
+                $total->toDecimal(),
                 $responseItems,
             );
             $responseBody = json_encode($details->toArray(), JSON_THROW_ON_ERROR);
@@ -211,19 +211,5 @@ final class EloquentSaleCreator implements SaleCreator
             ->format('Y-m-d\TH:i:s\Z');
 
         return new SaleDetails($saleId, $createdBy, $createdAt, 'open', 'unpaid', $total, $items);
-    }
-
-    private function toCents(string $amount): int
-    {
-        if (preg_match('/^(\d{1,8})\.(\d{2})$/D', $amount, $matches) !== 1) {
-            throw new LogicException('The catalog returned a unit price outside the supported range.');
-        }
-
-        return ((int) $matches[1] * 100) + (int) $matches[2];
-    }
-
-    private function fromCents(int $amount): string
-    {
-        return intdiv($amount, 100).'.'.str_pad((string) ($amount % 100), 2, '0', STR_PAD_LEFT);
     }
 }
