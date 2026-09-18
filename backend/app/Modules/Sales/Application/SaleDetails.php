@@ -20,6 +20,7 @@ final readonly class SaleDetails
      */
     public function __construct(
         public int $id,
+        public int $createdBy,
         public string $createdAt,
         public string $state,
         public string $paymentStatus,
@@ -30,6 +31,7 @@ final readonly class SaleDetails
     /**
      * @return array{
      *     id: int,
+     *     createdBy: int,
      *     createdAt: string,
      *     state: string,
      *     paymentStatus: string,
@@ -48,6 +50,7 @@ final readonly class SaleDetails
     {
         return [
             'id' => $this->id,
+            'createdBy' => $this->createdBy,
             'createdAt' => $this->createdAt,
             'state' => $this->state,
             'paymentStatus' => $this->paymentStatus,
@@ -61,6 +64,7 @@ final readonly class SaleDetails
         if (
             ! is_array($data)
             || ! is_int($data['id'] ?? null)
+            || ! is_int($data['createdBy'] ?? null)
             || ! is_string($data['createdAt'] ?? null)
             || ! is_string($data['state'] ?? null)
             || ! is_string($data['paymentStatus'] ?? null)
@@ -98,6 +102,7 @@ final readonly class SaleDetails
 
         return new self(
             $data['id'],
+            $data['createdBy'],
             $data['createdAt'],
             $data['state'],
             $data['paymentStatus'],

@@ -322,7 +322,7 @@ Adjustment reasons are `stock_count`, `damage`, `expiry`, and `correction`. Each
 | `POST /sales/{saleId}/mark-paid` | Admin, staff | Preserve the current paid/unpaid transition without adding payment records |
 | `POST /sales/{saleId}/cancel` | Admin, staff | Cancel an unpaid sale and record compensating stock movements |
 
-Current Laravel state: `POST /sales` creates open, unpaid sales, snapshots server catalog prices, reserves eligible stock by FEFO, and persists the sale, sale lines, and inventory movements atomically. Repeated idempotency keys replay the original response. The other Sales paths remain registered placeholders until their implementation slices land.
+Current Laravel state: `POST /sales` creates open, unpaid sales, snapshots server catalog prices, reserves eligible stock by FEFO, and persists the sale, sale lines, and inventory movements atomically. Repeated idempotency keys replay the original response. `GET /sales/{saleId}` returns the saved creator ID, state, payment status, total, and line price snapshots. The other Sales paths remain registered placeholders until their implementation slices land.
 
 Create request:
 

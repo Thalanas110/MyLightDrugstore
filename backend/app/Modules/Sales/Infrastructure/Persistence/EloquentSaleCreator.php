@@ -160,7 +160,12 @@ final class EloquentSaleCreator implements SaleCreator
                 $stockItems,
             ));
 
-            $details = $this->toSaleDetails($sale, $this->fromCents($totalCents), $responseItems);
+            $details = $this->toSaleDetails(
+                $sale,
+                $command->actorUserId,
+                $this->fromCents($totalCents),
+                $responseItems,
+            );
             $responseBody = json_encode($details->toArray(), JSON_THROW_ON_ERROR);
             $updatedRows = DB::table('sales_idempotency_keys')
                 ->where('actor_user_id', $command->actorUserId)
@@ -189,7 +194,7 @@ final class EloquentSaleCreator implements SaleCreator
      *     state: string
      * }>  $items
      */
-    private function toSaleDetails(Sale $sale, string $total, array $items): SaleDetails
+    private function toSaleDetails(Sale $sale, int $createdBy, string $total, array $items): SaleDetails
     {
         $saleId = $sale->getKey();
         $createdAt = $sale->getAttribute('created_at');
@@ -205,7 +210,7 @@ final class EloquentSaleCreator implements SaleCreator
             ->setTimezone(new DateTimeZone('UTC'))
             ->format('Y-m-d\TH:i:s\Z');
 
-        return new SaleDetails($saleId, $createdAt, 'open', 'unpaid', $total, $items);
+        return new SaleDetails($saleId, $createdBy, $createdAt, 'open', 'unpaid', $total, $items);
     }
 
     private function toCents(string $amount): int

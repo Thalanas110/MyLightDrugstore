@@ -63,6 +63,7 @@ final class SalesCreateEndpointTest extends TestCase
 
         $this->assertSame('open', $payload['data']['state']);
         $this->assertSame('unpaid', $payload['data']['paymentStatus']);
+        $this->assertSame($actor->getKey(), $payload['data']['createdBy']);
         $this->assertSame('37.05', $payload['data']['total']);
         $this->assertSame('12.35', $payload['data']['items'][0]['unitPrice']);
         $this->assertSame(3, $payload['data']['items'][0]['quantity']);
