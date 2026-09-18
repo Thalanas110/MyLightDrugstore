@@ -9,6 +9,7 @@ use App\Modules\Identity\Domain\Users\StaffRole;
 use App\Modules\Identity\Domain\Users\Username;
 use App\Modules\Identity\Infrastructure\Persistence\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Testing\TestResponse;
 use Tests\Support\EncryptedTransportRequestBuilder;
 use Tests\Support\EncryptedTransportResponseReader;
@@ -104,6 +105,62 @@ final class AuthenticationControllerTest extends TestCase
         $this->encryptedRequest('GET', '/api/v1/auth/me')->assertUnauthorized();
     }
 
+    public function test_it_changes_the_authenticated_users_password_after_verifying_the_current_password(): void
+    {
+        $user = $this->createUser();
+        $this->authenticateUser();
+        $csrfToken = $this->requestCsrfToken();
+        $newPassword = 'ANewSecurePassword!2026';
+
+        $this->encryptedRequest('POST', '/api/v1/auth/change-password', [
+            'currentPassword' => 'CorrectHorseBatteryStaple!2026',
+            'newPassword' => $newPassword,
+        ], $csrfToken)->assertNoContent();
+
+        $user->refresh();
+        $this->assertTrue(Hash::check($newPassword, $user->getAuthPassword()));
+        $this->assertFalse(Hash::check('CorrectHorseBatteryStaple!2026', $user->getAuthPassword()));
+        $this->assertNotNull($user->password_changed_at);
+        $this->encryptedRequest('GET', '/api/v1/auth/me')->assertOk();
+    }
+
+    public function test_it_does_not_change_the_password_when_the_current_password_is_wrong(): void
+    {
+        $user = $this->createUser();
+        $this->authenticateUser();
+        $csrfToken = $this->requestCsrfToken();
+
+        $response = $this->encryptedRequest('POST', '/api/v1/auth/change-password', [
+            'currentPassword' => 'incorrect-password',
+            'newPassword' => 'ANewSecurePassword!2026',
+        ], $csrfToken)->assertUnprocessable();
+        $body = $this->responseBody($response, 'POST', '/api/v1/auth/change-password');
+        $payload = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame('validation_failed', $payload['error']['code']);
+        $this->assertArrayHasKey('currentPassword', $payload['error']['details']);
+        $this->assertTrue(Hash::check('CorrectHorseBatteryStaple!2026', $user->fresh()->getAuthPassword()));
+    }
+
+    public function test_it_rejects_passwords_that_repeat_the_current_value_or_are_too_short(): void
+    {
+        $this->createUser();
+        $this->authenticateUser();
+        $csrfToken = $this->requestCsrfToken();
+
+        foreach (['CorrectHorseBatteryStaple!2026', 'too-short'] as $newPassword) {
+            $response = $this->encryptedRequest('POST', '/api/v1/auth/change-password', [
+                'currentPassword' => 'CorrectHorseBatteryStaple!2026',
+                'newPassword' => $newPassword,
+            ], $csrfToken)->assertUnprocessable();
+            $body = $this->responseBody($response, 'POST', '/api/v1/auth/change-password');
+            $payload = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+
+            $this->assertSame('validation_failed', $payload['error']['code']);
+            $this->assertArrayHasKey('newPassword', $payload['error']['details']);
+        }
+    }
+
     private function requestCsrfToken(): string
     {
         $this->withSession(['_token' => 'test-csrf-token']);
@@ -115,6 +172,17 @@ final class AuthenticationControllerTest extends TestCase
         $this->assertIsString($token);
 
         return $token;
+    }
+
+    private function authenticateUser(): void
+    {
+        $csrfToken = $this->requestCsrfToken();
+        $this->encryptedRequest(
+            'POST',
+            '/api/v1/auth/login',
+            ['username' => 'pharmacy.staff_1', 'password' => 'CorrectHorseBatteryStaple!2026'],
+            $csrfToken,
+        )->assertOk();
     }
 
     /** @param array<string, mixed> $payload */

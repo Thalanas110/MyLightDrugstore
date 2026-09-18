@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Modules\Identity\Presentation;
 
 use App\Modules\Identity\Application\AuthenticateUserAction;
+use App\Modules\Identity\Application\ChangeCurrentPasswordAction;
 use App\Modules\Identity\Application\GetAuthenticatedUserAction;
 use App\Modules\Identity\Application\LogoutUserAction;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 
 final class AuthenticationController
@@ -41,6 +43,17 @@ final class AuthenticationController
         }
 
         return response()->json(['data' => $profile]);
+    }
+
+    public function changePassword(ChangePasswordRequest $request, ChangeCurrentPasswordAction $changePassword): Response
+    {
+        if (! $changePassword->execute($request->currentPassword(), $request->newPassword())) {
+            throw ValidationException::withMessages([
+                'currentPassword' => ['The current password is incorrect.'],
+            ]);
+        }
+
+        return response()->noContent();
     }
 
     public function logout(Request $request, LogoutUserAction $logoutUser): Response

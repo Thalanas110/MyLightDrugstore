@@ -343,7 +343,7 @@ Cancellation preserves the sale and its original line items, records who cancell
 | `POST /users` | Admin | Create an account |
 | `GET /users/{userId}` | Admin | Read an account |
 | `PATCH /users/{userId}` | Admin | Update name, role, or active state |
-Create request fields are `username`, `fullName`, `password`, and `role`. Roles are `admin` or `staff`. The password-change request contains `currentPassword` and `newPassword`. Deactivate accounts instead of deleting users referenced by sales or inventory movements. Password reset for another user requires a separate audited workflow and is not part of this contract.
+Create request fields are `username`, `fullName`, `password`, and `role`. Roles are `admin` or `staff`. The password-change request contains `currentPassword` and `newPassword`; the new password must be at least 12 characters and differ from the current password. Deactivate accounts instead of deleting users referenced by sales or inventory movements. Password reset for another user requires a separate audited workflow and is not part of this contract.
 
 ### Reports
 

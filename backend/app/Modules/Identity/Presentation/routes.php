@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\Api\PendingApiEndpointController;
 use App\Modules\Identity\Presentation\AuthenticationController;
 use Illuminate\Support\Facades\Route;
 
@@ -16,6 +15,6 @@ Route::post('/auth/logout', [AuthenticationController::class, 'logout'])
 Route::get('/auth/me', [AuthenticationController::class, 'me'])
     ->middleware('auth:web')
     ->name('api.v1.auth.me');
-Route::post('/auth/change-password', PendingApiEndpointController::class)
+Route::post('/auth/change-password', [AuthenticationController::class, 'changePassword'])
     ->middleware('auth:web')
     ->name('api.v1.auth.change-password');

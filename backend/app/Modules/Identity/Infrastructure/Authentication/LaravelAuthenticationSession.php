@@ -8,6 +8,7 @@ use App\Modules\Identity\Application\AuthenticatedUserProfile;
 use App\Modules\Identity\Application\AuthenticationSession;
 use App\Modules\Identity\Infrastructure\Persistence\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 final class LaravelAuthenticationSession implements AuthenticationSession
 {
@@ -23,6 +24,21 @@ final class LaravelAuthenticationSession implements AuthenticationSession
     public function currentUser(): ?AuthenticatedUserProfile
     {
         return $this->profile(Auth::guard('web')->user());
+    }
+
+    public function changeCurrentPassword(string $currentPassword, string $newPassword): bool
+    {
+        $user = Auth::guard('web')->user();
+
+        if (! $user instanceof User || ! Hash::check($currentPassword, $user->getAuthPassword())) {
+            return false;
+        }
+
+        $user->password = $newPassword;
+        $user->setAttribute('password_changed_at', now());
+        $user->save();
+
+        return true;
     }
 
     public function logout(): void

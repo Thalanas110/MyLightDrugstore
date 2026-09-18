@@ -10,5 +10,7 @@ interface AuthenticationSession
 
     public function currentUser(): ?AuthenticatedUserProfile;
 
+    public function changeCurrentPassword(string $currentPassword, string $newPassword): bool;
+
     public function logout(): void;
 }
