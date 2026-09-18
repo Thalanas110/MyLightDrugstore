@@ -298,6 +298,8 @@ Adjustment request:
 
 Adjustment reasons are `stock_count`, `damage`, `expiry`, and `correction`. Each request contains 1–100 unique lots and non-zero signed quantity deltas. The server locks all affected lots, rejects an adjustment that would make any lot negative, then records the actor, timestamp, reason, and affected lots in one transaction. The `201` response contains `adjustmentId`, `reason`, `itemCount`, and `totalQuantityDelta`. A correction is a new movement; movement history is never edited or deleted.
 
+`GET /inventory/movements` supports `medicineId`, `lotId`, `movementType`, `from`, `to`, `page`, and `perPage`. Date filters are inclusive UTC calendar dates. Results are ordered newest first and include the signed delta, reason, source reference, lot, medicine, actor ID, and actor full name. Movement types are `receipt`, `sale`, `sale_item_removal`, `sale_cancellation`, and `adjustment`.
+
 ### Sales
 
 | Method and path | Permission | Purpose |

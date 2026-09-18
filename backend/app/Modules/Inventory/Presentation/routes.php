@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\Api\PendingApiEndpointController;
 use App\Modules\Inventory\Presentation\InventoryAdjustmentController;
 use App\Modules\Inventory\Presentation\InventoryLotListController;
+use App\Modules\Inventory\Presentation\InventoryMovementListController;
 use App\Modules\Inventory\Presentation\InventorySummaryController;
 use App\Modules\Inventory\Presentation\ReceiveStockController;
 use Illuminate\Support\Facades\Route;
@@ -21,6 +21,6 @@ Route::post('/inventory/receipts', ReceiveStockController::class)
 Route::post('/inventory/adjustments', InventoryAdjustmentController::class)
     ->middleware('auth:web')
     ->name('api.v1.inventory.adjustments.store');
-Route::get('/inventory/movements', PendingApiEndpointController::class)
+Route::get('/inventory/movements', InventoryMovementListController::class)
     ->middleware('auth:web')
     ->name('api.v1.inventory.movements.index');
