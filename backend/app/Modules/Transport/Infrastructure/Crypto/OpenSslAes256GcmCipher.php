@@ -6,6 +6,7 @@ namespace App\Modules\Transport\Infrastructure\Crypto;
 
 use App\Modules\Transport\Domain\Crypto\AesGcmCiphertext;
 use App\Modules\Transport\Domain\Crypto\AuthenticatedEncryptor;
+use App\Modules\Transport\Domain\Crypto\TransportAuthenticationFailed;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -56,7 +57,7 @@ final class OpenSslAes256GcmCipher implements AuthenticatedEncryptor
         );
 
         if ($plaintext === false) {
-            throw new RuntimeException('Authenticated decryption failed.');
+            throw new TransportAuthenticationFailed('Authenticated decryption failed.');
         }
 
         return $plaintext;
