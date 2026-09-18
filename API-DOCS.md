@@ -58,7 +58,7 @@ Each module owns its validation, policies, application services, and persistence
 ## API conventions
 
 - Base path: `/api/v1`
-- Transport: HTTPS in deployed environments; JSON request and response bodies
+- Transport: HTTPS in deployed environments; AES-256-GCM encrypted API request and response bodies
 - JSON property names: `camelCase`
 - Dates: `YYYY-MM-DD`; timestamps: ISO 8601 in UTC
 - Money: decimal strings in the store's configured currency, for example `"12.50"`; do not use floating-point values
@@ -106,6 +106,44 @@ Error response:
 ```
 
 Use stable machine-readable error codes. `details` may be omitted when there are no field errors. Include a request ID in every error response and server log entry.
+
+### Encrypted transport
+
+The JSON examples in this document describe the logical API payload after transport decryption. HTTPS is still required in deployed environments. The encrypted transport adds the MeatLens-style application envelope; it does not replace TLS, authentication, CSRF protection, authorization, validation, or idempotency.
+
+`GET /transport/public-key` is the only plaintext success endpoint. A generic plaintext transport error is also possible before a symmetric request key can be established (for example, when `X-Transport-Key` is missing or cannot be unwrapped). Once a request key is established, request and application error bodies are encrypted. The public-key endpoint returns the current transport key metadata in the normal success envelope:
+
+```json
+{
+  "data": {
+    "version": 1,
+    "algorithm": "RSA-OAEP-256",
+    "transportAlgorithm": "A256GCM",
+    "keyId": "transport-2026-01",
+    "publicKey": "-----BEGIN PUBLIC KEY-----..."
+  }
+}
+```
+
+For every other request, the client creates a fresh 32-byte AES key and wraps it with the advertised RSA public key using OAEP with SHA-256. The client sends the wrapped key in `X-Transport-Key` as `<keyId>.<base64url-wrapped-key>`. The request and response envelope has this shape:
+
+```json
+{
+  "version": 1,
+  "algorithm": "A256GCM",
+  "keyId": "transport-2026-01",
+  "iv": "<base64url-12-byte-nonce>",
+  "ciphertext": "<base64url-ciphertext-and-16-byte-tag>"
+}
+```
+
+AES-GCM additional authenticated data is the uppercase HTTP method, one space, and the normalized URL path, excluding the query string (for example, `POST /api/v1/sales`). For a JSON request, the encrypted plaintext is a transport payload descriptor with `kind: "json"`, `contentType: "application/json"`, and `value` containing the UTF-8 JSON text. The decrypted response plaintext is a JSON descriptor with `contentType`, safe `headers`, `body`, and `bodyEncoding` (`utf8` or `base64`). The HTTP status and `Set-Cookie` headers remain HTTP metadata; API body content stays encrypted. Empty-body requests still send `X-Transport-Key` so the response can be encrypted.
+
+Reject unknown key IDs, malformed or non-canonical base64url, invalid nonce/tag lengths, oversized envelopes, and authentication failures with a generic error. Do not log keys, decrypted bodies, or sensitive response data. Use distinct key material for transport and stored-data encryption. Support overlapping key IDs during key rotation.
+
+### Sensitive data at rest
+
+Encrypt staff usernames and full names in the database with AES-256-GCM using an at-rest key ring separate from the transport RSA/AES keys. Store a keyed HMAC-SHA-256 lookup digest for normalized usernames so login and uniqueness checks do not require plaintext database values. Passwords are one-way Argon2id hashes, never encrypted or returned. Encrypt database backup artifacts at rest with AES-256-GCM and keep them outside the public web root. Encrypted personal fields are decrypted only in the application layer for authorized responses and cannot be searched directly; the username digest is the only lookup index for those encrypted account fields. Include key IDs and format versions in ciphertext records so key rotation can re-encrypt stored data.
 
 | HTTP status | Use |
 | --- | --- |
@@ -177,6 +215,12 @@ A sale has a stable ID, creation time, state (`open`, `completed`, or `cancelled
 ## Endpoints
 
 All paths below are relative to `/api/v1`. Unless marked public, endpoints require an authenticated session. The documented target endpoints do not exist in the current code yet.
+
+### Transport
+
+| Method and path | Permission | Purpose |
+| --- | --- | --- |
+| `GET /transport/public-key` | Public, plaintext | Bootstrap the AES-256-GCM transport by returning the current RSA-OAEP-SHA-256 public key and key ID |
 
 ### Authentication
 
