@@ -249,6 +249,8 @@ All paths below are relative to `/api/v1`. Unless marked public, endpoints requi
 
 `GET /medicines` supports `q`, `active`, `lowStock`, `expiresBefore`, `page`, and `perPage`. Do not hard-delete a medicine referenced by stock or sales history.
 
+The list defaults to active medicines; `active=false` selects archived medicines. Search checks generic name, brand, dosage form, and strength. Stock totals and low-stock filtering include only non-depleted lots that have not expired as of the current UTC date. `expiresBefore` is inclusive and selects medicines with a non-depleted, unexpired lot expiring on or before that date.
+
 Create/update fields are `genericName`, `brandName`, `description`, `dosageForm`, `strength`, `unitPrice`, and `storageLocation`. The server validates lengths and numeric ranges and computes stock totals.
 
 ### Inventory

@@ -3,9 +3,11 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\PendingApiEndpointController;
+use App\Modules\Catalog\Presentation\MedicineListController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/medicines', PendingApiEndpointController::class)
+Route::get('/medicines', MedicineListController::class)
+    ->middleware('auth:web')
     ->name('api.v1.medicines.index');
 Route::post('/medicines', PendingApiEndpointController::class)
     ->name('api.v1.medicines.store');
