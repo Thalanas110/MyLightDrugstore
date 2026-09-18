@@ -26,6 +26,34 @@ final class DecryptTransportRequest
 
     public const SESSION_KEY_ID_ATTRIBUTE = 'transport_session_key_id';
 
+    private const array SAFE_LOGICAL_RESPONSE_HEADERS = [
+        'cache-control',
+        'etag',
+        'last-modified',
+        'location',
+        'retry-after',
+        'vary',
+    ];
+
+    private const array SAFE_OUTER_RESPONSE_HEADERS = [
+        'access-control-allow-credentials',
+        'access-control-allow-headers',
+        'access-control-allow-methods',
+        'access-control-allow-origin',
+        'access-control-expose-headers',
+        'access-control-max-age',
+        'cache-control',
+        'content-security-policy',
+        'date',
+        'permissions-policy',
+        'referrer-policy',
+        'strict-transport-security',
+        'vary',
+        'x-content-type-options',
+        'x-frame-options',
+        'x-request-id',
+    ];
+
     public function __construct(
         private TransportKeyRing $transportKeyRing,
         private RsaOaepKeyCipher $rsaOaepKeyCipher,
@@ -114,9 +142,11 @@ final class DecryptTransportRequest
             return $response;
         }
 
+        $safeHeaders = $this->safeLogicalHeaders($response);
+
         $descriptor = json_encode([
             'contentType' => $contentType,
-            'headers' => [],
+            'headers' => $safeHeaders,
             'body' => $body,
             'bodyEncoding' => 'utf8',
         ], JSON_THROW_ON_ERROR);
@@ -124,11 +154,46 @@ final class DecryptTransportRequest
         $encrypted = $this->authenticatedEncryptor->encrypt($aesKey, $descriptor, $additionalData);
         $envelope = new TransportEnvelope(1, 'A256GCM', $keyId, $encrypted);
         $encodedEnvelope = json_encode($this->envelopeCodec->encode($envelope), JSON_THROW_ON_ERROR);
+        $cookies = $response->headers->getCookies();
+        $outerHeaders = [];
+        $responseHeaders = $response->headers->all();
+
+        foreach (self::SAFE_OUTER_RESPONSE_HEADERS as $name) {
+            if (isset($responseHeaders[$name])) {
+                $outerHeaders[$name] = $responseHeaders[$name];
+            }
+        }
+
+        $response->headers->replace($outerHeaders);
+
+        foreach ($cookies as $cookie) {
+            $response->headers->setCookie($cookie);
+        }
+
         $response->setContent($encodedEnvelope);
         $response->headers->set('Content-Type', 'application/json');
         $response->headers->remove('Content-Length');
         $response->headers->remove('Content-Encoding');
 
         return $response;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function safeLogicalHeaders(Response $response): array
+    {
+        $headers = $response->headers->all();
+        $safeHeaders = [];
+
+        foreach (self::SAFE_LOGICAL_RESPONSE_HEADERS as $name) {
+            $values = $headers[$name] ?? null;
+
+            if (is_array($values) && $values !== []) {
+                $safeHeaders[$name] = implode(', ', $values);
+            }
+        }
+
+        return $safeHeaders;
     }
 }

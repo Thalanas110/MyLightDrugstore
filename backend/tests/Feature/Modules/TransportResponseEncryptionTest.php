@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Testing\TestResponse;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Cookie;
 use Tests\Support\EncryptedTransportRequestBuilder;
 use Tests\Support\EncryptedTransportResponseReader;
 use Tests\TestCase;
@@ -32,7 +33,7 @@ final class TransportResponseEncryptionTest extends TestCase
         $this->assertStringNotContainsString('sensitive success body', $response->getContent());
         $this->assertSame([
             'contentType' => 'application/json',
-            'headers' => [],
+            'headers' => ['cache-control' => 'no-cache, private'],
             'body' => '{"data":{"message":"sensitive success body"}}',
             'bodyEncoding' => 'utf8',
         ], $this->decryptResponse($response->json(), $request['aesKey'], 'POST', $path));
@@ -71,6 +72,37 @@ final class TransportResponseEncryptionTest extends TestCase
             'validation_failed',
             json_decode($descriptor['body'], true, 512, JSON_THROW_ON_ERROR)['error']['code'],
         );
+    }
+
+    public function test_safe_logical_headers_are_encrypted_and_cookies_remain_http_metadata(): void
+    {
+        $path = '/api/v1/_transport-test/response-headers';
+        Route::middleware('api')->post($path, static function (): JsonResponse {
+            $response = response()->json(['data' => ['created' => true]], 201);
+            $response->headers->set('Cache-Control', 'private, no-store');
+            $response->headers->set('Location', '/api/v1/medicines/42');
+            $response->headers->set('X-Internal-Secret', 'do-not-expose');
+            $response->headers->setCookie(Cookie::create('pharmacy_session', 'session-secret')->withHttpOnly());
+
+            return $response;
+        });
+        $request = (new EncryptedTransportRequestBuilder)->build('POST', $path, ['probe' => true]);
+
+        $response = $this->send($path, $request);
+
+        $response->assertCreated()->assertHeader('X-Request-ID');
+        $cookies = $response->headers->getCookies();
+        $this->assertCount(1, $cookies);
+        $this->assertSame('pharmacy_session', $cookies[0]->getName());
+        $this->assertSame('session-secret', $cookies[0]->getValue());
+        $this->assertFalse($response->headers->has('X-Internal-Secret'));
+        $this->assertFalse($response->headers->has('Location'));
+        $descriptor = (new EncryptedTransportResponseReader)->read($response, $request['aesKey'], 'POST', $path);
+        $this->assertSame([
+            'cache-control' => 'no-store, private',
+            'location' => '/api/v1/medicines/42',
+        ], $descriptor['headers']);
+        $this->assertArrayNotHasKey('x-internal-secret', $descriptor['headers']);
     }
 
     /**
