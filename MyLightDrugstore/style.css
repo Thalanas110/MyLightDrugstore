@@ -1,0 +1,56 @@
+body{
+	margin:0;
+	color:#232323;
+	padding-top: 0px;
+	padding-right: 0;
+	padding-bottom: 0;
+	padding-left: 0;
+	background:#f0f3f0;
+	width:100%;
+}
+
+#wrapper{
+	border:0px solid;
+	margin-top:15%;
+	height:auto;
+	text-align:center;
+}
+
+
+#bglogin img{
+	border:2px solid;
+	height:300px;
+	width:650px;
+	margin:0 auto;
+}
+
+#login{
+	position:relative;
+	border:0px solid;
+	margin-top:-280px;
+	margin-left:45%;
+}
+
+#login td{
+	border:0px solid;
+	height:20px;
+}
+#errorTable{
+	border:0px solid;
+}
+#errorTable td{
+	border:0px solid;
+}
+
+#errorLogin{
+	color:red;
+	font-family:verdana;
+	font-size:13px;
+	text-align:center;
+	margin-top:-5px;
+}
+
+#loading{
+	margin-bottom:-10px;
+	padding-bottom:1px;
+}

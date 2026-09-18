@@ -1,0 +1,26 @@
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+
+# Local database exports and generated backups
+**/dbmedicine.sql
+**/tbldruginfo.sql
+**/tbldruginfo.txt
+**/backup/
+
+# Local worktrees
+.kilo/worktrees/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor and temporary files
+.idea/
+*.log
+*.tmp
+*.swp
+*.swo
+*~

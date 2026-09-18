@@ -1,0 +1,314 @@
+@charset "utf-8";
+/* CSS Document */
+*/
+* {font-family:Verdana, Arial, Helvetica, sans-serif; font-size:11px; }
+/*a:hover {background:#ffffff; text-decoration:none;} /*BG color is a must for IE6*/
+.tooltip span {display:none; padding:5px 5px; margin-left:8px; margin-top:23px; width:300px;}
+.tooltip:hover span{display:inline; position:absolute; border:1px solid #cccccc; background:#78b6e4; color:#000000;}
+
+#salesTable{
+	border:0px solid;
+}
+
+#salesTable td{
+	border:0px solid;
+}
+
+#dateTime{
+	margin-left:620px;	
+	margin-bottom:-15px;
+}
+
+#welcomeAdmin{
+	text-align:center;
+	font-family:georgia;
+	font-size:30px;
+	padding-top:120px;
+}
+
+#accountsWrapper{
+	border:0px solid;
+	margin-top:20px;	
+	width:800px;
+	margin-left:auto;
+	margin-right:auto;
+}
+
+#accountsTable{
+	border:0px solid;	
+	margin:0 auto;
+}
+
+#listTable{
+	border:0px solid;
+	width:700px;
+	margin-left:auto;
+	margin-right:auto;
+}
+
+#listTable th,td{
+	border:1px solid;
+}
+
+#messageTable{
+	border:0px solid;
+}
+
+#accountsTable td{
+	border:0px solid;	
+}
+
+#accountList{
+	margin-top:15px;
+	border:0px solid;	
+}
+
+#accountStyle{
+	font-family:verdana;
+	font-size:12px;
+}
+
+body{
+	margin:0;
+	color:#232323;
+	padding-top: 0px;
+	padding-right: 0;
+	padding-bottom: 0;
+	padding-left: 0;
+	background:#f0f3f0;
+	width:100%;
+}
+div, h1, h2, h3, h4, p, form, label, input, textarea, img, span{
+	margin:0; padding:0;
+}
+
+ul{
+	margin:0; 
+	padding:0; 
+	list-style-type:none;
+	font-size:0;
+	line-height:0;
+}
+
+
+.spacer{
+	clear:both; 
+	font-size:0; 
+	line-height:0;
+}
+h1
+{
+font:bold 14px/40px Arial, Helvetica, sans-serif;
+}
+p
+{
+font:normal 11px/18px Arial, Helvetica, sans-serif;
+padding:0 15px 0 0;
+}
+.more
+{
+font:normal 12px/18px Arial, Helvetica, sans-serif;
+color:#2e3192;
+text-decoration:underline;
+}
+/* header */
+#header
+{
+margin:0 auto;
+background:url(images/hioxindia-pharmacy_02.jpg) 0 0 repeat-x;
+}
+#navigation
+{
+margin:0 auto;
+background:url(images/hioxindia-pharmacy_04.jpg) 0 0 no-repeat;
+height:446px;
+width:960px;
+}
+#navigation ul
+{
+list-style:none;
+}
+#navigation ul li
+{
+font:normal 14px/40px Arial, Helvetica, sans-serif;
+display:block;
+padding:0 30px;
+margin-top:410px;
+float:left;
+text-align:center;
+}
+#navigation ul li a
+{
+text-decoration:none;
+display:block;
+color:#034ea2;
+}
+#navigation ul li a:hover
+{
+text-decoration:none;
+display:block;
+color:#FFFFFF;
+}
+#content
+{
+clear:both;
+margin:0 auto;
+width:960px;
+}
+#content h3
+{
+	font-size:17px;
+	color:#000000;
+	font-family:georgia;
+	text-decoration:none;
+}
+
+#content h2 
+{
+	font-size:12px;
+	color:#000fff;
+	font:normal 14px/20px Arial, Helvetica, sans-serif;
+	text-decoration:none;
+	margin-left:50px;
+	margin-top:5px;
+}
+
+#content h2 a
+{
+	text-decoration:none;	
+}
+
+#content h2 a:hover
+{
+	color:red;
+	text-decoration:underline;	
+}
+
+#info
+{
+	margin-left:50px;
+	width:900px;
+}
+
+#info td
+{
+	font-family:verdana;
+	font-size:15px;	
+}
+
+#footer
+{
+margin:0 auto;
+background:#78b6e4;
+width:100%;
+height:86px;
+margin-top:50px;
+}
+#footer_1
+{
+background:url(images/hioxindia-pharmacy_03.jpg) 0 0 no-repeat;
+width:960px;
+height:86px;
+margin:0 auto;
+}
+#footer_1 ul
+{
+list-style:none;
+padding:15px 0 0 190px;
+}
+#footer_1 ul li
+{
+font:normal 14px/18px Arial, Helvetica, sans-serif;
+display:block;
+padding:0 25px;
+float:left;
+text-align:center;
+}
+#footer_1 ul li a
+{
+text-decoration:none;
+display:block;
+color:#FFFFFF;
+}
+#design
+{
+font:normal 12px/45px Arial, Helvetica, sans-serif;
+color:#2e3192;
+padding:50px 0 0 350px;
+}
+#dum
+{
+text-decoration:none;
+color:#2e3192;
+}
+
+#listOfItemCodeInformation{
+	border:1px solid;
+	height:80px;
+	padding:10px;
+}
+
+#listOfTransaction{
+	border:1px solid;
+	height:auto;
+	padding:10px;
+}
+
+#clear{
+	clear:both;	
+}
+
+.listInformation{
+	font-family:verdana;
+	border:0px solid;
+}
+
+.listInformation td{
+	font-family:verdana;
+	border:0px solid;
+}
+
+.listTransaction{
+	border:1px solid;
+	font-family:verdana;
+}
+
+.listTransaction td{
+	width:200px;
+	border:1px solid;
+	font-family:verdana;
+}
+
+#cartTable{
+	border:1px solid;
+}
+#signature{
+	border:1px solid #000000;	
+	margin-top:50px;
+	width:200px;
+	margin-left:730px;
+}
+
+#cartTable td{
+	border:1px solid;
+	font-family:verdana;
+	font-size:13px;
+}
+
+#linkPrintOrder{
+	color:#FFFFFF;
+	text-decoration:underline;
+	font-weight:bold;
+}
+
+#linkPrintOrder:hover{
+	color:#FFFFFF;
+	font-weight:bold;
+	text-decoration:none;
+}
+
+#headerUpdateOrder{
+	border:1px solid;
+	background-color:#0000FF;
+	padding-bottom:3px;
+}
