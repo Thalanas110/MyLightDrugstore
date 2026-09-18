@@ -257,6 +257,8 @@ Create/update fields are `genericName`, `brandName`, `description`, `dosageForm`
 
 `POST /medicines` returns the created active medicine resource with status `201` and `stockOnHand` of zero. `unitPrice` is a positive decimal string with exactly two fractional digits and a maximum of `99999999.99`. Opening stock is recorded separately with `POST /inventory/receipts`; `initialQuantity` is not a medicine field.
 
+`PATCH /medicines/{medicineId}` accepts one or more of those catalog fields and returns the updated resource. Nullable fields can be cleared with `null`; an empty patch is invalid. The `active` and `stockOnHand` fields cannot be changed here: archive medicines through the archive action and change stock through inventory endpoints.
+
 ### Inventory
 
 | Method and path | Permission | Purpose |
