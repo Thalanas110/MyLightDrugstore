@@ -11,6 +11,7 @@ use App\Modules\Identity\Domain\Users\Username;
 use App\Modules\Identity\Infrastructure\Persistence\User;
 use App\Modules\Inventory\Infrastructure\Persistence\InventoryLot;
 use App\Modules\Inventory\Infrastructure\Persistence\InventoryReceipt;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\EncryptedTransportRequestBuilder;
 use Tests\Support\EncryptedTransportResponseReader;
@@ -36,12 +37,14 @@ final class InventorySummaryEndpointTest extends TestCase
 
     public function test_it_summarizes_lots_filters_low_stock_and_returns_pagination_metadata(): void
     {
+        $this->travelTo(CarbonImmutable::parse('2026-09-18T02:00:00Z'));
         $this->actingAs($this->createUser(), 'web');
         $lowStockMedicine = Medicine::factory()->create(['generic_name' => 'Low stock medicine']);
         $thresholdMedicine = Medicine::factory()->create(['generic_name' => 'At threshold medicine']);
         $inactiveMedicine = Medicine::factory()->create(['active' => false, 'generic_name' => 'Archived medicine']);
         $this->addLot($lowStockMedicine, 10, '2027-03-31');
         $this->addLot($lowStockMedicine, 19, '2027-01-10');
+        $this->addLot($lowStockMedicine, 100, '2026-09-17');
         $this->addLot($thresholdMedicine, 30, '2028-06-30');
         $this->addLot($inactiveMedicine, 1, '2028-06-30');
 
@@ -76,6 +79,7 @@ final class InventorySummaryEndpointTest extends TestCase
         $medicineWithOnlyDepletedLots = Medicine::factory()->create(['generic_name' => 'Depleted medicine']);
         $this->addLot($medicineWithStock, 4, '2026-10-01');
         $this->addLot($medicineWithOnlyDepletedLots, 0, '2026-09-20', receivedQuantity: 12);
+        $this->addLot($medicineWithOnlyDepletedLots, 3, '2026-09-17');
 
         $body = $this->requestBody('/api/v1/inventory?expiresBefore=2026-10-01');
         $payload = json_decode($body, true, 512, JSON_THROW_ON_ERROR);

@@ -7,4 +7,6 @@ namespace App\Modules\Catalog\Application;
 interface MedicineListQuery
 {
     public function search(MedicineListFilters $filters): MedicineListPage;
+
+    public function find(int $medicineId): ?MedicineListItem;
 }

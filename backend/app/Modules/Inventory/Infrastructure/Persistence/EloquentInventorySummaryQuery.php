@@ -24,11 +24,13 @@ final class EloquentInventorySummaryQuery implements InventorySummaryQuery
             throw new LogicException('The configured low-stock threshold must be a positive integer.');
         }
 
+        $today = now('UTC')->toDateString();
         $stocks = DB::table('inventory_lots')
             ->select('medicine_id')
             ->selectRaw('SUM(quantity_remaining) AS stock_on_hand')
             ->selectRaw('MIN(expires_at) AS earliest_expiry')
             ->where('quantity_remaining', '>', 0)
+            ->whereDate('expires_at', '>=', $today)
             ->groupBy('medicine_id');
 
         $query = DB::table('medicines')
@@ -46,7 +48,7 @@ final class EloquentInventorySummaryQuery implements InventorySummaryQuery
             ]);
 
         $this->applyLowStockFilter($query, $filters->lowStock, $threshold);
-        $this->applyExpiryFilter($query, $filters->expiresBefore);
+        $this->applyExpiryFilter($query, $filters->expiresBefore, $today);
 
         $paginated = $query
             ->orderBy('medicines.generic_name')
@@ -75,17 +77,18 @@ final class EloquentInventorySummaryQuery implements InventorySummaryQuery
         $query->whereRaw('COALESCE(stock_summary.stock_on_hand, 0) '.$operator.' ?', [$threshold]);
     }
 
-    private function applyExpiryFilter(Builder $query, ?DateTimeImmutable $expiresBefore): void
+    private function applyExpiryFilter(Builder $query, ?DateTimeImmutable $expiresBefore, string $today): void
     {
         if ($expiresBefore === null) {
             return;
         }
 
-        $query->whereExists(static function (Builder $subquery) use ($expiresBefore): void {
+        $query->whereExists(static function (Builder $subquery) use ($expiresBefore, $today): void {
             $subquery->selectRaw('1')
                 ->from('inventory_lots as expiring_lots')
                 ->whereColumn('expiring_lots.medicine_id', 'medicines.id')
                 ->where('expiring_lots.quantity_remaining', '>', 0)
+                ->whereDate('expiring_lots.expires_at', '>=', $today)
                 ->whereDate('expiring_lots.expires_at', '<=', $expiresBefore->format('Y-m-d'));
         });
     }

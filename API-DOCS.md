@@ -251,6 +251,8 @@ All paths below are relative to `/api/v1`. Unless marked public, endpoints requi
 
 The list defaults to active medicines; `active=false` selects archived medicines. Search checks generic name, brand, dosage form, and strength. Stock totals and low-stock filtering include only non-depleted lots that have not expired as of the current UTC date. `expiresBefore` is inclusive and selects medicines with a non-depleted, unexpired lot expiring on or before that date.
 
+`GET /medicines/{medicineId}` returns the same medicine resource for active or archived records, with stock calculated from unexpired, non-depleted lots. A missing medicine returns `404 not_found`.
+
 Create/update fields are `genericName`, `brandName`, `description`, `dosageForm`, `strength`, `unitPrice`, and `storageLocation`. The server validates lengths and numeric ranges and computes stock totals.
 
 ### Inventory
@@ -263,7 +265,7 @@ Create/update fields are `genericName`, `brandName`, `description`, `dosageForm`
 | `POST /inventory/adjustments` | Admin, staff | Record a reasoned correction against one or more lots |
 | `GET /inventory/movements` | Admin, staff | Read the append-only stock movement history |
 
-`GET /inventory` lists active medicines with `stockOnHand`, `lowStock`, and `earliestExpiry`. `lowStock=true` selects totals below the configurable threshold (default 30); `false` selects totals at or above it. `expiresBefore` includes medicines with a non-depleted lot expiring on or before that date. `earliestExpiry` is the earliest expiry among non-depleted lots, or `null` when none remain. Inventory lists use the standard `page` and `perPage` metadata.
+`GET /inventory` lists active medicines with `stockOnHand`, `lowStock`, and `earliestExpiry`. Stock totals include only non-depleted lots that expire today or later in UTC. `lowStock=true` selects totals below the configurable threshold (default 30); `false` selects totals at or above it. `expiresBefore` includes medicines with a non-depleted, unexpired lot expiring on or before that date. `earliestExpiry` is the earliest expiry among unexpired, non-depleted lots, or `null` when none remain. Inventory lists use the standard `page` and `perPage` metadata.
 
 `GET /inventory/lots` supports `medicineId`, `expiresBefore`, `available`, `page`, and `perPage`. The expiry filter is inclusive. `available=true` selects lots with remaining quantity whose expiry date is today or later in UTC; `available=false` selects depleted or expired lots. Omitting `available` returns both. Results are ordered by expiry date, receipt time, then lot ID. Each item returns `lotId`, `medicineId`, `genericName`, `brandName`, `receivedAt`, `expiresAt`, `quantityReceived`, `quantityRemaining`, and `available`.
 

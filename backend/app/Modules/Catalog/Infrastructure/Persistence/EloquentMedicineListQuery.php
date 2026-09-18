@@ -27,20 +27,7 @@ final class EloquentMedicineListQuery implements MedicineListQuery
         }
 
         $today = now('UTC')->toDateString();
-        $stocks = DB::table('inventory_lots')
-            ->select('medicine_id')
-            ->selectRaw('SUM(quantity_remaining) AS stock_on_hand')
-            ->selectRaw('MIN(expires_at) AS earliest_expiry')
-            ->where('quantity_remaining', '>', 0)
-            ->whereDate('expires_at', '>=', $today)
-            ->groupBy('medicine_id');
-
-        $query = Medicine::query()
-            ->leftJoinSub($stocks, 'stock_summary', 'stock_summary.medicine_id', '=', 'medicines.id')
-            ->select([
-                'medicines.*',
-                DB::raw('COALESCE(stock_summary.stock_on_hand, 0) AS stock_on_hand'),
-            ])
+        $query = $this->baseQuery($today)
             ->where('medicines.active', $filters->active);
 
         if ($filters->query !== null) {
@@ -66,6 +53,33 @@ final class EloquentMedicineListQuery implements MedicineListQuery
         }
 
         return new MedicineListPage($items, $paginated->currentPage(), $paginated->perPage(), $paginated->total());
+    }
+
+    public function find(int $medicineId): ?MedicineListItem
+    {
+        $medicine = $this->baseQuery(now('UTC')->toDateString())
+            ->whereKey($medicineId)
+            ->first();
+
+        return $medicine === null ? null : $this->mapItem($medicine);
+    }
+
+    /** @return EloquentBuilder<Medicine> */
+    private function baseQuery(string $today): EloquentBuilder
+    {
+        $stocks = DB::table('inventory_lots')
+            ->select('medicine_id')
+            ->selectRaw('SUM(quantity_remaining) AS stock_on_hand')
+            ->where('quantity_remaining', '>', 0)
+            ->whereDate('expires_at', '>=', $today)
+            ->groupBy('medicine_id');
+
+        return Medicine::query()
+            ->leftJoinSub($stocks, 'stock_summary', 'stock_summary.medicine_id', '=', 'medicines.id')
+            ->select([
+                'medicines.*',
+                DB::raw('COALESCE(stock_summary.stock_on_hand, 0) AS stock_on_hand'),
+            ]);
     }
 
     /** @param EloquentBuilder<Medicine> $query */
