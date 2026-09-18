@@ -151,7 +151,7 @@ final class EloquentSaleCreator implements SaleCreator
                     'lineTotal' => $item['lineTotal'],
                     'state' => 'active',
                 ];
-                $stockItems[] = new ReserveSaleStockItem($item['medicineId'], $item['quantity']);
+                $stockItems[] = new ReserveSaleStockItem($item['medicineId'], $item['quantity'], $saleItemId);
             }
 
             $this->inventoryStockReserver->reserveForSale(new ReserveStockForSaleCommand(

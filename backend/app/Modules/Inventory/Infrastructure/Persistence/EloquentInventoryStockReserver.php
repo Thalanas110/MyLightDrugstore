@@ -37,7 +37,7 @@ final class EloquentInventoryStockReserver implements InventoryStockReserver
                 $lotsByMedicine[$medicineId][] = $lot;
             }
 
-            /** @var list<array{lot: InventoryLot, quantity: int}> $allocations */
+            /** @var list<array{lot: InventoryLot, quantity: int, saleItemId: int}> $allocations */
             $allocations = [];
 
             foreach ($command->items as $item) {
@@ -51,7 +51,11 @@ final class EloquentInventoryStockReserver implements InventoryStockReserver
                         continue;
                     }
 
-                    $allocations[] = ['lot' => $lot, 'quantity' => $allocatedQuantity];
+                    $allocations[] = [
+                        'lot' => $lot,
+                        'quantity' => $allocatedQuantity,
+                        'saleItemId' => $item->saleItemId,
+                    ];
                     $quantityRemaining -= $allocatedQuantity;
 
                     if ($quantityRemaining === 0) {
@@ -67,6 +71,7 @@ final class EloquentInventoryStockReserver implements InventoryStockReserver
             foreach ($allocations as $allocation) {
                 $lot = $allocation['lot'];
                 $quantity = $allocation['quantity'];
+                $saleItemId = $allocation['saleItemId'];
                 $remainingQuantity = $lot->quantity_remaining - $quantity;
 
                 if ($remainingQuantity < 0) {
@@ -79,6 +84,7 @@ final class EloquentInventoryStockReserver implements InventoryStockReserver
                 InventoryMovement::query()->create([
                     'medicine_id' => $lot->medicine_id,
                     'inventory_lot_id' => $lot->getKey(),
+                    'sale_item_id' => $saleItemId,
                     'actor_user_id' => $command->actorUserId,
                     'movement_type' => 'sale',
                     'quantity_delta' => -$quantity,

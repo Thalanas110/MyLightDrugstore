@@ -20,6 +20,7 @@ use LogicException;
     'reason',
     'source_type',
     'source_id',
+    'sale_item_id',
     'occurred_at',
 ])]
 final class InventoryMovement extends Model

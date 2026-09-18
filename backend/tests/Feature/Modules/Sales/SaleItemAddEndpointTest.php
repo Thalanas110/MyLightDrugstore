@@ -88,6 +88,7 @@ final class SaleItemAddEndpointTest extends TestCase
         $this->assertDatabaseHas('inventory_lots', ['id' => $lotId, 'quantity_remaining' => 7]);
         $this->assertDatabaseHas('inventory_movements', [
             'medicine_id' => $medicine->getKey(),
+            'sale_item_id' => $payload['data']['items'][1]['id'],
             'movement_type' => 'sale',
             'quantity_delta' => -3,
             'source_type' => 'sale',

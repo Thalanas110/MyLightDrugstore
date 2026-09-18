@@ -87,6 +87,16 @@ final class SalesCreateEndpointTest extends TestCase
             [$payload['data']['id']],
             DB::table('inventory_movements')->where('source_type', 'sale')->distinct()->pluck('source_id')->all(),
         );
+        $this->assertDatabaseHas('inventory_movements', [
+            'sale_item_id' => $payload['data']['items'][0]['id'],
+            'inventory_lot_id' => $firstLotId,
+            'quantity_delta' => -1,
+        ]);
+        $this->assertDatabaseHas('inventory_movements', [
+            'sale_item_id' => $payload['data']['items'][0]['id'],
+            'inventory_lot_id' => $secondLotId,
+            'quantity_delta' => -2,
+        ]);
     }
 
     public function test_it_rejects_insufficient_stock_without_creating_a_sale_or_movement(): void

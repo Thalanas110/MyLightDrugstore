@@ -9,5 +9,6 @@ final readonly class ReserveSaleStockItem
     public function __construct(
         public int $medicineId,
         public int $quantity,
+        public int $saleItemId,
     ) {}
 }

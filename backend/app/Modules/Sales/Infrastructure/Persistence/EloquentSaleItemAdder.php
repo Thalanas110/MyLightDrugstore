@@ -104,7 +104,7 @@ final class EloquentSaleItemAdder implements SaleItemAdder
 
             $saleTotal = SaleAmount::fromDecimal($storedTotal)->add($lineTotal);
 
-            SaleItem::query()->create([
+            $saleItem = SaleItem::query()->create([
                 'sale_id' => $command->saleId,
                 'medicine_id' => $command->medicineId,
                 'quantity' => $command->quantity,
@@ -112,13 +112,19 @@ final class EloquentSaleItemAdder implements SaleItemAdder
                 'line_total' => $lineTotal->toDecimal(),
                 'state' => 'active',
             ]);
+            $saleItemId = $saleItem->getKey();
+
+            if (! is_int($saleItemId)) {
+                throw new LogicException('The sale item was created without a valid identifier.');
+            }
+
             $sale->setAttribute('total', $saleTotal->toDecimal());
             $sale->save();
 
             $this->inventoryStockReserver->reserveForSale(new ReserveStockForSaleCommand(
                 $command->actorUserId,
                 $command->saleId,
-                [new ReserveSaleStockItem($command->medicineId, $command->quantity)],
+                [new ReserveSaleStockItem($command->medicineId, $command->quantity, $saleItemId)],
             ));
 
             $details = $this->saleDetailsQuery->find($command->saleId);
