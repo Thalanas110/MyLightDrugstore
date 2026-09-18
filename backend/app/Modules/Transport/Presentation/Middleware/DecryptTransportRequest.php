@@ -28,6 +28,7 @@ final class DecryptTransportRequest
 
     private const array SAFE_LOGICAL_RESPONSE_HEADERS = [
         'cache-control',
+        'content-disposition',
         'etag',
         'last-modified',
         'location',
@@ -128,10 +129,9 @@ final class DecryptTransportRequest
     {
         $aesKey = $request->attributes->get(self::SESSION_KEY_ATTRIBUTE);
         $keyId = $request->attributes->get(self::SESSION_KEY_ID_ATTRIBUTE);
-        $contentType = $response->headers->get('Content-Type');
+        $contentType = $response->headers->get('Content-Type') ?? 'application/octet-stream';
 
-        if (! is_string($aesKey) || ! is_string($keyId) || ! is_string($contentType)
-            || ! str_contains(strtolower($contentType), 'json')
+        if (! is_string($aesKey) || ! is_string($keyId)
             || in_array($response->getStatusCode(), [Response::HTTP_NO_CONTENT, Response::HTTP_NOT_MODIFIED], true)) {
             return $response;
         }
@@ -143,12 +143,14 @@ final class DecryptTransportRequest
         }
 
         $safeHeaders = $this->safeLogicalHeaders($response);
+        $bodyEncoding = str_contains(strtolower($contentType), 'json') ? 'utf8' : 'base64';
+        $descriptorBody = $bodyEncoding === 'utf8' ? $body : base64_encode($body);
 
         $descriptor = json_encode([
             'contentType' => $contentType,
             'headers' => $safeHeaders,
-            'body' => $body,
-            'bodyEncoding' => 'utf8',
+            'body' => $descriptorBody,
+            'bodyEncoding' => $bodyEncoding,
         ], JSON_THROW_ON_ERROR);
         $additionalData = RequestAdditionalData::fromRequestTarget($request->method(), $request->getRequestUri());
         $encrypted = $this->authenticatedEncryptor->encrypt($aesKey, $descriptor, $additionalData);
