@@ -10,4 +10,5 @@ return [
         ],
         'retiring' => json_decode((string) env('DATA_ENCRYPTION_RETIRING_KEYS_JSON', '[]'), true, 512, JSON_THROW_ON_ERROR),
     ],
+    'username_lookup_key_base64' => env('USERNAME_LOOKUP_KEY_BASE64', ''),
 ];
