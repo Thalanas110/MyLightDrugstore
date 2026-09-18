@@ -6,6 +6,7 @@ namespace Tests\Feature\Http;
 
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Testing\TestResponse;
 use Illuminate\Validation\ValidationException;
@@ -39,6 +40,18 @@ final class ApiErrorResponseTest extends TestCase
 
         $response->assertUnauthorized();
         $this->assertExactErrorResponse($response, 'unauthenticated', 'Authentication is required.');
+    }
+
+    public function test_csrf_token_errors_use_a_stable_expired_token_response(): void
+    {
+        $response = $this->requestFor(new TokenMismatchException);
+
+        $response->assertStatus(419);
+        $this->assertExactErrorResponse(
+            $response,
+            'csrf_token_mismatch',
+            'The CSRF token is invalid or expired.',
+        );
     }
 
     public function test_authorization_errors_use_a_safe_forbidden_response(): void

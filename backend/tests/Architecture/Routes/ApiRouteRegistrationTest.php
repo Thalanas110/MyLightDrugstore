@@ -46,4 +46,18 @@ final class ApiRouteRegistrationTest extends TestCase
         $this->assertNotEmpty($businessRoutes);
         $this->assertSame([], $unversionedRoutes);
     }
+
+    public function test_every_versioned_api_route_uses_session_and_csrf_middleware(): void
+    {
+        $apiRoutes = array_values(array_filter(
+            RouteFacade::getRoutes()->getRoutes(),
+            static fn (Route $route): bool => str_starts_with($route->uri(), 'api/v1/'),
+        ));
+
+        $this->assertNotEmpty($apiRoutes);
+
+        foreach ($apiRoutes as $route) {
+            $this->assertContains('web', $route->middleware(), $route->uri());
+        }
+    }
 }

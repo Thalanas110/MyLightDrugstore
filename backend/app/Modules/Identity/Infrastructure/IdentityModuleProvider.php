@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Identity\Infrastructure;
 
+use App\Modules\Identity\Application\AuthenticationSession;
 use App\Modules\Identity\Infrastructure\Authentication\EncryptedUsernameUserProvider;
+use App\Modules\Identity\Infrastructure\Authentication\LaravelAuthenticationSession;
 use App\Modules\ModuleName;
 use App\Modules\ModuleProvider;
 use App\Modules\Security\Application\UsernameLookupDigest;
@@ -24,6 +26,8 @@ final class IdentityModuleProvider implements ModuleProvider
 
     public function register(Container $container): void
     {
+        $container->bind(AuthenticationSession::class, LaravelAuthenticationSession::class);
+
         Auth::provider('encrypted-username', static function (Application $application, array $configuration): UserProviderContract {
             $model = $configuration['model'] ?? null;
 

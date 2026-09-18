@@ -9,6 +9,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
+use Illuminate\Session\TokenMismatchException;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -18,6 +19,8 @@ use Throwable;
 
 final class ApiErrorResponder
 {
+    private const int CSRF_TOKEN_MISMATCH_STATUS = 419;
+
     public function respond(Throwable $exception, Request $request): ?JsonResponse
     {
         if (! $request->is('api/v1/*')) {
@@ -31,6 +34,18 @@ final class ApiErrorResponder
                 'validation_failed',
                 'The request is invalid.',
                 $exception->errors(),
+            );
+        }
+
+        if (
+            $exception instanceof TokenMismatchException
+            || $this->hasStatus($exception, self::CSRF_TOKEN_MISMATCH_STATUS)
+        ) {
+            return $this->error(
+                $request,
+                self::CSRF_TOKEN_MISMATCH_STATUS,
+                'csrf_token_mismatch',
+                'The CSRF token is invalid or expired.',
             );
         }
 

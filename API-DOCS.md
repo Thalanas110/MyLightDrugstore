@@ -157,6 +157,7 @@ Encrypt staff usernames and full names in the database with AES-256-GCM using an
 | `204` | Successful action with no response body |
 | `401` | Missing or invalid authentication |
 | `403` | Authenticated user lacks permission |
+| `419` | CSRF token is missing, invalid, or expired |
 | `404` | Resource does not exist or is not visible to the user |
 | `409` | State conflict, such as insufficient stock or an invalid transition |
 | `422` | Request validation failed |
