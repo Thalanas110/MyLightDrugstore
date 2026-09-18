@@ -4,13 +4,19 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Modules\Operations;
 
+use Tests\Support\EncryptedTransportRequestBuilder;
 use Tests\TestCase;
 
 final class SystemTimeRouteTest extends TestCase
 {
     public function test_versioned_system_time_route_returns_the_utc_api_resource(): void
     {
-        $response = $this->getJson('/api/v1/system/time');
+        $path = '/api/v1/system/time';
+        $encrypted = (new EncryptedTransportRequestBuilder)->build('GET', $path, []);
+        $response = $this->call('GET', $path, [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X_TRANSPORT_KEY' => $encrypted['header'],
+        ], json_encode($encrypted['envelope'], JSON_THROW_ON_ERROR));
 
         $response->assertOk()->assertJsonStructure([
             'data' => ['now'],

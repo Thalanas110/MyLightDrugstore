@@ -2,6 +2,7 @@
 
 use App\Http\Errors\ApiErrorResponder;
 use App\Http\Middleware\AttachRequestId;
+use App\Modules\Transport\Presentation\Middleware\DecryptTransportRequest;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -18,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->prepend(AttachRequestId::class);
+        $middleware->appendToGroup('api', DecryptTransportRequest::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(static function (Throwable $exception, Request $request): ?JsonResponse {

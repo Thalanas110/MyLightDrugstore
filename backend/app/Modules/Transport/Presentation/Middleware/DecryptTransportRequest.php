@@ -8,8 +8,11 @@ use App\Modules\Transport\Domain\Crypto\AuthenticatedEncryptor;
 use App\Modules\Transport\Domain\Crypto\Base64UrlCodec;
 use App\Modules\Transport\Domain\Crypto\RequestAdditionalData;
 use App\Modules\Transport\Domain\Crypto\RsaOaepKeyCipher;
+use App\Modules\Transport\Domain\Crypto\TransportAuthenticationFailed;
 use App\Modules\Transport\Domain\Crypto\TransportEnvelopeCodec;
+use App\Modules\Transport\Domain\Crypto\TransportKeyExchangeFailed;
 use App\Modules\Transport\Domain\Crypto\TransportKeyRing;
+use App\Modules\Transport\Domain\Crypto\UnknownTransportKeyId;
 use App\Modules\Transport\Domain\Payload\JsonTransportPayloadParser;
 use Closure;
 use Illuminate\Http\Request;
@@ -32,15 +35,18 @@ final class DecryptTransportRequest
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $transportKeyHeader = $request->headers->get('X-Transport-Key');
-
-        if (! is_string($transportKeyHeader) || substr_count($transportKeyHeader, '.') !== 1) {
-            throw new InvalidArgumentException('Encrypted request is invalid.');
+        if ($request->routeIs('api.v1.transport.public-key')) {
+            return $next($request);
         }
 
-        [$keyId, $encodedWrappedKey] = explode('.', $transportKeyHeader, 2);
-
         try {
+            $transportKeyHeader = $request->headers->get('X-Transport-Key');
+
+            if (! is_string($transportKeyHeader) || substr_count($transportKeyHeader, '.') !== 1) {
+                throw new InvalidArgumentException('Encrypted request is invalid.');
+            }
+
+            [$keyId, $encodedWrappedKey] = explode('.', $transportKeyHeader, 2);
             $wrappedKey = $this->base64UrlCodec->decode($encodedWrappedKey);
             $envelope = $this->envelopeCodec->decode($request->json()->all());
 
@@ -53,13 +59,28 @@ final class DecryptTransportRequest
             $additionalData = RequestAdditionalData::fromRequestTarget($request->method(), $request->getRequestUri());
             $plaintext = $this->authenticatedEncryptor->decrypt($aesKey, $envelope->encrypted, $additionalData);
             $payload = $this->payloadParser->parse($plaintext);
-        } catch (InvalidArgumentException $exception) {
-            throw new InvalidArgumentException('Encrypted request is invalid.', previous: $exception);
+        } catch (InvalidArgumentException|TransportAuthenticationFailed|TransportKeyExchangeFailed|UnknownTransportKeyId) {
+            return $this->rejected($request);
         }
 
         $request->request->replace($payload);
         $request->json()->replace($payload);
 
         return $next($request);
+    }
+
+    private function rejected(Request $request): Response
+    {
+        $requestId = $request->attributes->get('request_id');
+        $error = [
+            'code' => 'transport_error',
+            'message' => 'The encrypted request could not be processed.',
+        ];
+
+        if (is_string($requestId)) {
+            $error['requestId'] = $requestId;
+        }
+
+        return response()->json(['error' => $error], Response::HTTP_BAD_REQUEST);
     }
 }
