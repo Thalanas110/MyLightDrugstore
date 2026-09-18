@@ -12,6 +12,7 @@
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
+        "larastan/larastan": "^3.0",
         "laravel/boost": "^2.9",
         "laravel/pail": "^1.2.5",
         "laravel/pao": "^1.0.6",
@@ -51,6 +52,7 @@
         ],
         "test:unit": "@php artisan test --compact --testsuite=Unit",
         "test:feature": "@php artisan test --compact --testsuite=Feature",
+        "analyse": "@php vendor/bin/phpstan analyse --no-progress",
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
