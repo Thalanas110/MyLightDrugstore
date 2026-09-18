@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Errors;
 
+use App\Http\Middleware\AttachRequestId;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -25,6 +26,7 @@ final class ApiErrorResponder
 
         if ($exception instanceof ValidationException) {
             return $this->error(
+                $request,
                 Response::HTTP_UNPROCESSABLE_ENTITY,
                 'validation_failed',
                 'The request is invalid.',
@@ -37,6 +39,7 @@ final class ApiErrorResponder
             || $this->hasStatus($exception, Response::HTTP_UNAUTHORIZED)
         ) {
             return $this->error(
+                $request,
                 Response::HTTP_UNAUTHORIZED,
                 'unauthenticated',
                 'Authentication is required.',
@@ -48,6 +51,7 @@ final class ApiErrorResponder
             || $this->hasStatus($exception, Response::HTTP_FORBIDDEN)
         ) {
             return $this->error(
+                $request,
                 Response::HTTP_FORBIDDEN,
                 'forbidden',
                 'You are not allowed to perform this action.',
@@ -60,6 +64,7 @@ final class ApiErrorResponder
             || $this->hasStatus($exception, Response::HTTP_NOT_FOUND)
         ) {
             return $this->error(
+                $request,
                 Response::HTTP_NOT_FOUND,
                 'not_found',
                 'The requested resource was not found.',
@@ -68,6 +73,7 @@ final class ApiErrorResponder
 
         if ($this->hasStatus($exception, Response::HTTP_CONFLICT)) {
             return $this->error(
+                $request,
                 Response::HTTP_CONFLICT,
                 'conflict',
                 'The request conflicts with the current resource state.',
@@ -75,6 +81,7 @@ final class ApiErrorResponder
         }
 
         return $this->error(
+            $request,
             Response::HTTP_INTERNAL_SERVER_ERROR,
             'internal_error',
             'An unexpected error occurred.',
@@ -84,18 +91,30 @@ final class ApiErrorResponder
     /**
      * @param  array<string, array<int, string>>|null  $details
      */
-    private function error(int $status, string $code, string $message, ?array $details = null): JsonResponse
+    private function error(Request $request, int $status, string $code, string $message, ?array $details = null): JsonResponse
     {
         $error = [
             'code' => $code,
             'message' => $message,
         ];
 
+        $requestId = $request->attributes->get(AttachRequestId::ATTRIBUTE);
+
         if ($details !== null) {
             $error['details'] = $details;
         }
 
-        return response()->json(['error' => $error], $status);
+        if (is_string($requestId)) {
+            $error['requestId'] = $requestId;
+        }
+
+        $response = response()->json(['error' => $error], $status);
+
+        if (is_string($requestId)) {
+            $response->headers->set(AttachRequestId::HEADER, $requestId);
+        }
+
+        return $response;
     }
 
     private function hasStatus(Throwable $exception, int $status): bool

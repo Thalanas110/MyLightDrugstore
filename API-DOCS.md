@@ -109,6 +109,8 @@ Use stable machine-readable error codes. `details` may be omitted when there are
 
 The default error codes are `unauthenticated` (401), `forbidden` (403), `not_found` (404), `conflict` (409), `validation_failed` (422), and `internal_error` (500). A conflict may use a more specific stable code when the caller needs to handle that state, such as `insufficient_stock` or `idempotency_key_reused`. Unexpected errors always use a generic message and never include exception, SQL, or stack-trace details.
 
+The server accepts a client `X-Request-ID` containing 1–64 ASCII letters, digits, periods, underscores, or hyphens, beginning with a letter or digit. Missing or unsafe values are replaced with a `req_`-prefixed ULID. The selected ID is returned in the `X-Request-ID` response header and every error body's `requestId` field, and is attached as `request_id` to structured log context.
+
 ### Encrypted transport
 
 The JSON examples in this document describe the logical API payload after transport decryption. HTTPS is still required in deployed environments. The encrypted transport adds the MeatLens-style application envelope; it does not replace TLS, authentication, CSRF protection, authorization, validation, or idempotency.

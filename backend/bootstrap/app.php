@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Errors\ApiErrorResponder;
+use App\Http\Middleware\AttachRequestId;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -14,11 +15,17 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->prepend(AttachRequestId::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(static function (Throwable $exception, Request $request): ?JsonResponse {
             return app(ApiErrorResponder::class)->respond($exception, $request);
+        });
+
+        $exceptions->context(static function (Throwable $exception, array $context): array {
+            $requestId = request()->attributes->get(AttachRequestId::ATTRIBUTE);
+
+            return is_string($requestId) ? ['request_id' => $requestId] : [];
         });
 
         $exceptions->shouldRenderJsonWhen(
