@@ -10,11 +10,17 @@ use stdClass;
 
 final class JsonTransportPayloadParser
 {
+    private const int MAX_DESCRIPTOR_BYTES = 524_288;
+
     /**
      * @return array<string, mixed>
      */
     public function parse(string $plaintext): array
     {
+        if (strlen($plaintext) > self::MAX_DESCRIPTOR_BYTES) {
+            throw self::invalidDescriptor();
+        }
+
         try {
             $descriptor = json_decode($plaintext, flags: JSON_THROW_ON_ERROR);
 

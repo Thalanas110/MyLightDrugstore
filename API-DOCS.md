@@ -143,7 +143,7 @@ For every other request, the client creates a fresh 32-byte AES key and wraps it
 
 AES-GCM additional authenticated data is the uppercase HTTP method, one space, and the normalized URL path, excluding the query string (for example, `POST /api/v1/sales`). For a JSON request, the encrypted plaintext is a transport payload descriptor with `kind: "json"`, `contentType: "application/json"`, and `value` containing the UTF-8 JSON text. The decrypted response plaintext is a JSON descriptor with `contentType`, safe `headers`, `body`, and `bodyEncoding` (`utf8` or `base64`). The HTTP status and `Set-Cookie` headers remain HTTP metadata; API body content stays encrypted. Empty-body requests still send `X-Transport-Key` so the response can be encrypted.
 
-Reject unknown key IDs, malformed or non-canonical base64url, invalid nonce/tag lengths, oversized envelopes, and authentication failures with a generic error. Do not log keys, decrypted bodies, or sensitive response data. Use distinct key material for transport and stored-data encryption. Support overlapping key IDs during key rotation.
+Reject unknown key IDs, malformed or non-canonical base64url, invalid nonce/tag lengths, oversized envelopes, and authentication failures with a generic error. The server limits `X-Transport-Key` to 4,096 bytes, a JSON request envelope to 1,400,000 bytes, combined ciphertext and tag to 1,048,576 bytes, and a decrypted JSON descriptor to 524,288 bytes. Reject oversized request bodies before parsing their JSON envelope. Do not log keys, decrypted bodies, or sensitive response data. Use distinct key material for transport and stored-data encryption. Support overlapping key IDs during key rotation.
 
 ### Sensitive data at rest
 

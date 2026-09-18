@@ -22,6 +22,10 @@ use Symfony\Component\HttpFoundation\Response;
 
 final class DecryptTransportRequest
 {
+    private const int MAX_REQUEST_BODY_BYTES = 1_400_000;
+
+    private const int MAX_TRANSPORT_KEY_HEADER_BYTES = 4_096;
+
     public const SESSION_KEY_ATTRIBUTE = 'transport_session_key';
 
     public const SESSION_KEY_ID_ATTRIBUTE = 'transport_session_key_id';
@@ -76,7 +80,9 @@ final class DecryptTransportRequest
         try {
             $transportKeyHeader = $request->headers->get('X-Transport-Key');
 
-            if (! is_string($transportKeyHeader) || substr_count($transportKeyHeader, '.') !== 1) {
+            if (! is_string($transportKeyHeader)
+                || strlen($transportKeyHeader) > self::MAX_TRANSPORT_KEY_HEADER_BYTES
+                || substr_count($transportKeyHeader, '.') !== 1) {
                 throw new InvalidArgumentException('Encrypted request is invalid.');
             }
 
@@ -86,8 +92,13 @@ final class DecryptTransportRequest
             $aesKey = $this->rsaOaepKeyCipher->unwrap($keyMaterial->privateKeyPem, $wrappedKey);
             $request->attributes->set(self::SESSION_KEY_ATTRIBUTE, $aesKey);
             $request->attributes->set(self::SESSION_KEY_ID_ATTRIBUTE, $keyId);
+            $rawBody = $request->getContent();
 
-            if ($request->getContent() === '') {
+            if (strlen($rawBody) > self::MAX_REQUEST_BODY_BYTES) {
+                throw new InvalidArgumentException('Encrypted request is invalid.');
+            }
+
+            if ($rawBody === '') {
                 $payload = [];
             } else {
                 $envelope = $this->envelopeCodec->decode($request->json()->all());

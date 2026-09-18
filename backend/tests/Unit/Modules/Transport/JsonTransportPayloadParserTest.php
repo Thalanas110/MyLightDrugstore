@@ -20,6 +20,20 @@ final class JsonTransportPayloadParserTest extends TestCase
         $this->assertSame(['medicineId' => 42, 'note' => 'café'], $payload);
     }
 
+    public function test_parse_rejects_a_valid_json_descriptor_that_exceeds_the_size_limit(): void
+    {
+        $descriptor = json_encode([
+            'kind' => 'json',
+            'contentType' => 'application/json',
+            'value' => json_encode(['payload' => str_repeat('x', 524_289)], JSON_THROW_ON_ERROR),
+        ], JSON_THROW_ON_ERROR);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Transport request descriptor is invalid.');
+
+        (new JsonTransportPayloadParser)->parse($descriptor);
+    }
+
     #[DataProvider('invalidDescriptors')]
     public function test_parse_rejects_malformed_or_unsupported_descriptors(string $descriptor): void
     {
