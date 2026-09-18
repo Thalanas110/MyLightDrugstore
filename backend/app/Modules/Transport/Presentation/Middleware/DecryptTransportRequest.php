@@ -16,9 +16,11 @@ use App\Modules\Transport\Domain\Crypto\TransportKeyRing;
 use App\Modules\Transport\Domain\Crypto\UnknownTransportKeyId;
 use App\Modules\Transport\Domain\Payload\JsonTransportPayloadParser;
 use Closure;
+use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 final class DecryptTransportRequest
 {
@@ -118,7 +120,15 @@ final class DecryptTransportRequest
         $request->request->replace($payload);
         $request->json()->replace($payload);
 
-        return $this->encryptResponse($request, $next($request));
+        try {
+            $response = $next($request);
+        } catch (Throwable $exception) {
+            $exceptionHandler = app(ExceptionHandler::class);
+            $exceptionHandler->report($exception);
+            $response = $exceptionHandler->render($request, $exception);
+        }
+
+        return $this->encryptResponse($request, $response);
     }
 
     private function rejected(Request $request): Response

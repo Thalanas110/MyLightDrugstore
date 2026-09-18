@@ -261,6 +261,8 @@ Create/update fields are `genericName`, `brandName`, `description`, `dosageForm`
 | `POST /inventory/adjustments` | Admin, staff | Record a reasoned correction against one or more lots |
 | `GET /inventory/movements` | Admin, staff | Read the append-only stock movement history |
 
+`GET /inventory` lists active medicines with `stockOnHand`, `lowStock`, and `earliestExpiry`. `lowStock=true` selects totals below the configurable threshold (default 30); `false` selects totals at or above it. `expiresBefore` includes medicines with a non-depleted lot expiring on or before that date. `earliestExpiry` is the earliest expiry among non-depleted lots, or `null` when none remain. Inventory lists use the standard `page` and `perPage` metadata.
+
 Receipt request:
 
 ```json

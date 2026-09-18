@@ -4,6 +4,7 @@ use App\Http\Errors\ApiErrorResponder;
 use App\Http\Middleware\AttachRequestId;
 use App\Http\Middleware\ValidateCsrfToken;
 use App\Modules\Transport\Presentation\Middleware\DecryptTransportRequest;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -22,6 +23,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->prepend(AttachRequestId::class);
         $middleware->appendToGroup('api', DecryptTransportRequest::class);
+        $middleware->prependToPriorityList(
+            AuthenticatesRequests::class,
+            DecryptTransportRequest::class,
+        );
         $middleware->replaceInGroup('web', PreventRequestForgery::class, ValidateCsrfToken::class);
         $middleware->redirectGuestsTo(static fn (Request $request): ?string => $request->is('api/*') ? null : '/login');
     })
