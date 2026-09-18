@@ -6,6 +6,7 @@ namespace App\Http\Errors;
 
 use App\Http\Middleware\AttachRequestId;
 use App\Modules\Inventory\Domain\InsufficientStockException;
+use App\Modules\Inventory\Domain\SaleItemStockHistoryMissingException;
 use App\Modules\Sales\Domain\IdempotencyKeyReusedException;
 use App\Modules\Sales\Domain\SaleNotEditableException;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -95,6 +96,15 @@ final class ApiErrorResponder
                 Response::HTTP_CONFLICT,
                 'insufficient_stock',
                 'There is not enough eligible stock for this sale.',
+            );
+        }
+
+        if ($exception instanceof SaleItemStockHistoryMissingException) {
+            return $this->error(
+                $request,
+                Response::HTTP_CONFLICT,
+                'conflict',
+                'The request conflicts with the current resource state.',
             );
         }
 

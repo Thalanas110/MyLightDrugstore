@@ -24,6 +24,20 @@ final class SaleAmountTest extends TestCase
         $this->assertSame('0.00', SaleAmount::zero()->toDecimal());
     }
 
+    public function test_it_subtracts_a_line_total_without_losing_fractional_cents(): void
+    {
+        $saleTotal = SaleAmount::fromDecimal('11.00')->subtract(SaleAmount::fromDecimal('7.00'));
+
+        $this->assertSame('4.00', $saleTotal->toDecimal());
+    }
+
+    public function test_it_rejects_a_subtraction_that_would_make_a_sale_negative(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        SaleAmount::fromDecimal('4.00')->subtract(SaleAmount::fromDecimal('7.00'));
+    }
+
     public function test_it_rejects_malformed_decimal_amounts(): void
     {
         $this->expectException(InvalidArgumentException::class);

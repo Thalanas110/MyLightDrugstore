@@ -47,6 +47,15 @@ final readonly class SaleAmount
         return new self($this->cents + $amount->cents);
     }
 
+    public function subtract(self $amount): self
+    {
+        if ($amount->cents > $this->cents) {
+            throw new InvalidArgumentException('A sale total cannot become negative.');
+        }
+
+        return new self($this->cents - $amount->cents);
+    }
+
     public function toDecimal(): string
     {
         return intdiv($this->cents, 100).'.'.str_pad((string) ($this->cents % 100), 2, '0', STR_PAD_LEFT);
