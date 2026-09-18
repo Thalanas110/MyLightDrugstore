@@ -107,7 +107,7 @@ Error response:
 
 Use stable machine-readable error codes. `details` may be omitted when there are no field errors. Include a request ID in every error response and server log entry.
 
-The default error codes are `unauthenticated` (401), `forbidden` (403), `not_found` (404), `conflict` (409), `validation_failed` (422), and `internal_error` (500). A conflict may use a more specific stable code when the caller needs to handle that state, such as `insufficient_stock` or `idempotency_key_reused`. Unexpected errors always use a generic message and never include exception, SQL, or stack-trace details.
+The default error codes are `unauthenticated` (401), `forbidden` (403), `not_found` (404), `conflict` (409), `validation_failed` (422), `not_implemented` (501, during the refactor only), and `internal_error` (500). A conflict may use a more specific stable code when the caller needs to handle that state, such as `insufficient_stock` or `idempotency_key_reused`. Unexpected errors always use a generic message and never include exception, SQL, or stack-trace details.
 
 The server accepts a client `X-Request-ID` containing 1–64 ASCII letters, digits, periods, underscores, or hyphens, beginning with a letter or digit. Missing or unsafe values are replaced with a `req_`-prefixed ULID. The selected ID is returned in the `X-Request-ID` response header and every error body's `requestId` field, and is attached as `request_id` to structured log context.
 
@@ -218,7 +218,7 @@ A sale has a stable ID, creation time, state (`open`, `completed`, or `cancelled
 
 ## Endpoints
 
-All paths below are relative to `/api/v1`. Unless marked public, endpoints require an authenticated session. The documented target endpoints do not exist in the current code yet.
+All paths below are relative to `/api/v1`. Unless marked public, endpoints require an authenticated session. Every target path is registered during the refactor; paths whose behavior is not implemented yet return `501 not_implemented` until their TDD slice replaces the placeholder.
 
 ### Transport
 
@@ -385,7 +385,7 @@ Use these path prefixes in the table: `M/` = `MyLightDrugstore/`, `A/` = `M/admi
 | `M/index.php`, `M/logout.php` | Enter the MyLightDrugstore app, authenticate, and log out | React `/login`; `GET /auth/csrf`, `POST /auth/login`, `POST /auth/logout`, `GET /auth/me` |
 | `A+S/index.php`, `P/index.php` | Admin/staff dashboard or standalone-app dashboard | React `/dashboard`; `GET /medicines` and inventory/report queries as needed |
 | `A+S+P/inventory.php` | Inventory navigation and entry | React `/inventory`; `GET /inventory` |
-| `A+S+P/inventoryItems.php`, `editInventory.php`, `deleteInventory.php`, `updateInventoryItems.php` | List, add, edit, and remove catalog items; create accepts initial quantity, and edit accepts a changed current quantity plus an additional quantity | React `/catalog/medicines`; `GET/POST/PATCH /medicines`, `POST /medicines/{medicineId}/archive`, `POST /inventory/adjustments` for count corrections, and `POST /inventory/receipts` for opening or additional stock |
+| `A+S+P/inventoryItems.php`, `editInventory.php`, `deleteInventory.php`, `updateInventoryItems.php` | List, add, edit, and remove catalog items; create accepts initial quantity, and edit accepts a changed current quantity plus an additional quantity | React `/catalog/medicines`; `GET/POST /medicines`, `PATCH /medicines/{medicineId}`, `POST /medicines/{medicineId}/archive`, `POST /inventory/adjustments` for count corrections, and `POST /inventory/receipts` for opening or additional stock |
 | `A+S+P/inventoryStatus.php` | Inventory status view | React inventory report; `GET /inventory` and `GET /reports/inventory` |
 | `A+S/itemForPurchase.php` | List items below the current low-stock threshold of 30 units | React low-stock filter; `GET /inventory?lowStock=true` or `GET /reports/inventory?lowStock=true` with the configured threshold set to 30 |
 | `A+S+P/updateQuantity.php` | Add the entered quantity to the current stock total from the maintenance screen | React stock-receipt form; `POST /inventory/receipts` creates a lot for the additional quantity. Record expiry and receipt time; do not treat the entered value as a replacement total. |
@@ -399,7 +399,7 @@ Use these path prefixes in the table: `M/` = `MyLightDrugstore/`, `A/` = `M/admi
 | `A+S+P/transactionDetails.php`, `printTransaction.php` | Select a date, view transaction details, and print the result | React `/reports/sales` and print view; `GET /reports/sales?from=...&to=...` and `GET /sales` |
 | `A+S+P/reports.php` | Navigate to inventory and transaction reports | React `/reports`; `GET /reports/inventory`, `GET /reports/sales` |
 | `A/accounts.php` | Navigate to user management and administrator account settings | React `/admin/users` and `/settings/security` |
-| `A/userAccounts.php`, `A/deleteUserAccount.php` | View, create, and remove staff accounts | React `/admin/users`; `GET/POST/PATCH /users`. Removal becomes deactivation so history remains linked. |
+| `A/userAccounts.php`, `A/deleteUserAccount.php` | View, create, and remove staff accounts | React `/admin/users`; `GET/POST /users` and `GET/PATCH /users/{userId}`. Removal becomes deactivation so history remains linked. |
 | `A/changeAdminAccount.php` | Change the signed-in administrator password | `POST /auth/change-password`; applies to both roles in the target system |
 | `A+S/backup.php` | Request a database dump | `POST /backups`; admin and staff may request one, while only admin can list or download backup artifacts |
 | `A+S+P/refresh-me.php` | Return the server date/time for the legacy clock | `GET /system/time`; React renders the value |

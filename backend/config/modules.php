@@ -14,6 +14,13 @@ return [
         __DIR__.'/../app/Modules/Transport/index.php',
     ],
     'api_route_files' => [
+        __DIR__.'/../app/Modules/Identity/Presentation/routes.php',
+        __DIR__.'/../app/Modules/Catalog/Presentation/routes.php',
+        __DIR__.'/../app/Modules/Inventory/Presentation/routes.php',
+        __DIR__.'/../app/Modules/Sales/Presentation/routes.php',
+        __DIR__.'/../app/Modules/Users/Presentation/routes.php',
+        __DIR__.'/../app/Modules/Reporting/Presentation/routes.php',
         __DIR__.'/../app/Modules/Operations/Presentation/routes.php',
+        __DIR__.'/../app/Modules/Transport/Presentation/routes.php',
     ],
 ];
