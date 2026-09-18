@@ -296,7 +296,7 @@ Adjustment request:
 }
 ```
 
-Adjustment reasons are `stock_count`, `damage`, `expiry`, and `correction`. Every adjustment records the actor, timestamp, reason, and affected lot. A correction is a new movement; movement history is never edited or deleted.
+Adjustment reasons are `stock_count`, `damage`, `expiry`, and `correction`. Each request contains 1–100 unique lots and non-zero signed quantity deltas. The server locks all affected lots, rejects an adjustment that would make any lot negative, then records the actor, timestamp, reason, and affected lots in one transaction. The `201` response contains `adjustmentId`, `reason`, `itemCount`, and `totalQuantityDelta`. A correction is a new movement; movement history is never edited or deleted.
 
 ### Sales
 
