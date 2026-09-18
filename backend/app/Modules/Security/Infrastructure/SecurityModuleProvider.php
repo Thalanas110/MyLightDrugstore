@@ -14,6 +14,7 @@ use App\Modules\Security\Domain\Crypto\DataEncryptionKeyRing;
 use App\Modules\Security\Domain\Crypto\LookupDigestKey;
 use App\Modules\Security\Infrastructure\Crypto\DataEncryptionKeyRingFactory;
 use App\Modules\Security\Infrastructure\Crypto\HmacUsernameLookupDigest;
+use App\Modules\Security\Infrastructure\Crypto\LookupDigestKeyFactory;
 use App\Modules\Security\Infrastructure\Crypto\OpenSslAuthenticatedDataCipher;
 use Illuminate\Contracts\Container\Container;
 use InvalidArgumentException;
@@ -43,13 +44,7 @@ final class SecurityModuleProvider implements ModuleProvider
                 throw new InvalidArgumentException('Username lookup digest key configuration must be a string.');
             }
 
-            $key = base64_decode($encodedKey, true);
-
-            if ($key === false || base64_encode($key) !== $encodedKey) {
-                throw new InvalidArgumentException('Username lookup digest keys must use canonical base64 encoding.');
-            }
-
-            return new LookupDigestKey($key);
+            return (new LookupDigestKeyFactory)->fromBase64($encodedKey);
         });
         $container->bind(AuthenticatedDataCipher::class, OpenSslAuthenticatedDataCipher::class);
         $container->bind(SensitiveDataProtector::class, DataProtectionService::class);
