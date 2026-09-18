@@ -44,12 +44,16 @@
         <env name="ARGON_TIME" value="2"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
+        <env name="DATA_ENCRYPTION_CURRENT_KEY_ID" value="test-data-2026-01" force="true"/>
+        <env name="DATA_ENCRYPTION_CURRENT_KEY_BASE64" value="ZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGQ=" force="true"/>
+        <env name="DATA_ENCRYPTION_RETIRING_KEYS_JSON" value="[]" force="true"/>
         <env name="DB_CONNECTION" value="sqlite"/>
         <env name="DB_DATABASE" value=":memory:"/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
+        <env name="USERNAME_LOOKUP_KEY_BASE64" value="bGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGxsbGw=" force="true"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>

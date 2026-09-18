@@ -13,7 +13,7 @@ final class PendingApiEndpointTest extends TestCase
     public function test_registered_endpoint_without_implemented_behavior_returns_a_correlated_501(): void
     {
         $requestId = 'req_pending-route';
-        $path = '/api/v1/sales';
+        $path = '/api/v1/reports/sales';
         $encrypted = (new EncryptedTransportRequestBuilder)->buildBodyless();
         $response = $this->call('GET', $path, [], [], [], [
             'HTTP_X_REQUEST_ID' => $requestId,
