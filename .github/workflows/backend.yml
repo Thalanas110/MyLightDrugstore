@@ -69,17 +69,29 @@ jobs:
           DB_USERNAME: root
           DB_PASSWORD: pharmacy-ci-password
 
-      - name: Run PHPUnit with coverage
+      - name: Run Unit tests with coverage
         run: |
           mkdir -p storage/framework/cache/coverage
-          timeout 110s php artisan test --compact --coverage-clover=storage/framework/cache/coverage/clover.xml
+          timeout 110s php artisan test --compact --coverage-clover=storage/framework/cache/coverage/unit.xml --testsuite=Unit
+
+      - name: Run Architecture tests with coverage
+        run: timeout 110s php artisan test --compact --coverage-clover=storage/framework/cache/coverage/architecture.xml --testsuite=Architecture
+
+      - name: Run Feature foundation tests with coverage
+        run: timeout 110s php artisan test --compact --coverage-clover=storage/framework/cache/coverage/feature-foundation.xml --testsuite=FeatureFoundation
+
+      - name: Run Feature business tests with coverage
+        run: timeout 110s php artisan test --compact --coverage-clover=storage/framework/cache/coverage/feature-business.xml --testsuite=FeatureBusiness
+
+      - name: Run Feature transport tests with coverage
+        run: timeout 110s php artisan test --compact --coverage-clover=storage/framework/cache/coverage/feature-transport.xml --testsuite=FeatureTransport
 
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: backend-coverage
-          path: backend/storage/framework/cache/coverage/clover.xml
+          path: backend/storage/framework/cache/coverage/*.xml
           if-no-files-found: ignore
 
   static-analysis:

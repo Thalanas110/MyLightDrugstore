@@ -37,7 +37,7 @@ final class InventoryMovementListEndpointTest extends TestCase
         $this->actingAs($user, 'web');
     }
 
-    public function test_it_filters_and_pages_the_movement_ledger_with_actor_and_lot_details(): void
+    public function test_it_filters_pages_and_returns_encrypted_validation_errors(): void
     {
         $actor = User::query()->firstOrFail();
         $medicine = Medicine::factory()->create(['generic_name' => 'Amoxicillin']);
@@ -71,10 +71,7 @@ final class InventoryMovementListEndpointTest extends TestCase
         $secondPage = $this->getPayload('/api/v1/inventory/movements?medicineId='.$medicine->getKey().'&movementType=adjustment&from=2026-09-18&to=2026-09-18&perPage=1&page=2');
         $this->assertSame([$morning->getKey()], array_column($secondPage['data'], 'movementId'));
         $this->assertSame(2, $secondPage['meta']['page']);
-    }
 
-    public function test_it_rejects_invalid_movement_filters_with_an_encrypted_validation_error(): void
-    {
         $path = '/api/v1/inventory/movements?movementType=unknown&from=2026-09-20&to=2026-09-18&perPage=101';
         $request = (new EncryptedTransportRequestBuilder)->buildBodyless();
         $response = $this->call('GET', $path, [], [], [], [

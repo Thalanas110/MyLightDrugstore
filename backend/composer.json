@@ -52,7 +52,11 @@
             "@php artisan test --compact"
         ],
         "test:unit": "@php artisan test --compact --testsuite=Unit",
-        "test:feature": "@php artisan test --compact --testsuite=Feature",
+        "test:feature": [
+            "@php artisan test --compact --testsuite=FeatureFoundation",
+            "@php artisan test --compact --testsuite=FeatureBusiness",
+            "@php artisan test --compact --testsuite=FeatureTransport"
+        ],
         "test:architecture": "@php artisan test --compact --testsuite=Architecture",
         "analyse": "@php vendor/bin/phpstan analyse --no-progress",
         "post-autoload-dump": [

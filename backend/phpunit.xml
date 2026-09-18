@@ -8,11 +8,25 @@
         <testsuite name="Unit">
             <directory>tests/Unit</directory>
         </testsuite>
-        <testsuite name="Feature">
-            <directory>tests/Feature</directory>
-        </testsuite>
         <testsuite name="Architecture">
             <directory>tests/Architecture</directory>
+        </testsuite>
+        <testsuite name="FeatureFoundation">
+            <directory suffix="Test.php">tests/Feature/Http</directory>
+            <file>tests/Feature/ExampleTest.php</file>
+        </testsuite>
+        <testsuite name="FeatureBusiness">
+            <directory suffix="Test.php">tests/Feature/Modules/Catalog</directory>
+            <directory suffix="Test.php">tests/Feature/Modules/Identity</directory>
+            <directory suffix="Test.php">tests/Feature/Modules/Inventory</directory>
+            <directory suffix="Test.php">tests/Feature/Modules/Operations</directory>
+        </testsuite>
+        <testsuite name="FeatureTransport">
+            <directory suffix="Test.php">tests/Feature/Modules</directory>
+            <exclude>tests/Feature/Modules/Catalog</exclude>
+            <exclude>tests/Feature/Modules/Identity</exclude>
+            <exclude>tests/Feature/Modules/Inventory</exclude>
+            <exclude>tests/Feature/Modules/Operations</exclude>
         </testsuite>
     </testsuites>
     <source>
