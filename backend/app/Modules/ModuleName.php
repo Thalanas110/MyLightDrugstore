@@ -14,4 +14,5 @@ enum ModuleName: string
     case Reporting = 'reporting';
     case Operations = 'operations';
     case Transport = 'transport';
+    case Security = 'security';
 }
