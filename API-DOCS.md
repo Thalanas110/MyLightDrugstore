@@ -11,13 +11,15 @@ This document describes the target API and maps it to the current PHP applicatio
 - Authentication and the `admin` and `staff` roles
 - Medicine catalog
 - Inventory on hand, stock receipts, lots, expiry dates, and adjustments
-- Sales and sale cancellation
+- Sales carts, unpaid/paid status, line removal, and sale cancellation
 - Staff account administration
 - Inventory and sales reports
+- Secure, role-protected database backup operations
+- The server-time value used by the legacy clock widget
 
 ### Later phases
 
-Supplier management, purchase orders, multiple branches, customer records, payments, and finance are outside this contract. The v1 model is single-store; adding branches later will require an explicit data migration and store-level authorization design.
+Supplier management, actual purchase-order workflows, multiple branches, customer records, payment records, reconciliation, and accounting are outside this contract. The simple legacy unpaid/paid flag remains in v1 sales; it does not create a payment or accounting ledger. The v1 model is single-store; adding branches later will require an explicit data migration and store-level authorization design.
 
 ## Architecture
 
@@ -109,6 +111,7 @@ Use stable machine-readable error codes. `details` may be omitted when there are
 | --- | --- |
 | `200` | Successful read or update |
 | `201` | Resource created |
+| `202` | Accepted for asynchronous processing, such as a backup job |
 | `204` | Successful action with no response body |
 | `401` | Missing or invalid authentication |
 | `403` | Authenticated user lacks permission |
@@ -127,12 +130,16 @@ The React application is a first-party client. Use Laravel-managed session authe
 | Capability | Admin | Staff |
 | --- | --- | --- |
 | Read medicines and inventory | Yes | Yes |
-| Create or update medicines; archive a medicine | Yes | No |
+| Create or update medicines; archive a medicine | Yes | Yes |
 | Record stock receipts | Yes | Yes |
-| Record stock adjustments | Yes | No |
-| Create, read, and cancel sales | Yes | Yes |
+| Record stock adjustments | Yes | Yes |
+| Create and manage sales, including paid/unpaid status | Yes | Yes |
 | Read inventory and sales reports | Yes | Yes |
+| Change own password | Yes | Yes |
 | Create, update, or deactivate staff accounts | Yes | No |
+| Request a database backup | Yes | Yes |
+| List and download database backups | Yes | No |
+| Read server time for the clock widget | Yes | Yes |
 
 The role is checked on every request by a backend policy. Hiding a button in React is not authorization.
 
@@ -165,7 +172,7 @@ A receipt creates one or more stock lots. Each lot records its medicine, receive
 
 ### Sale
 
-A sale has a stable ID, creation time, status (`completed` or `cancelled`), creator, line items, and totals. Each line item records the medicine ID, quantity, unit-price snapshot, and line total. Payment status and payment records are not part of v1.
+A sale has a stable ID, creation time, state (`open`, `completed`, or `cancelled`), payment status (`unpaid` or `paid`), creator, line items, and totals. Marking an open sale paid completes it. Each line item records the medicine ID, quantity, unit-price snapshot, line total, and line state (`active` or `removed`). V1 carries the existing unpaid/paid marker but does not record tender type, partial payments, refunds, or accounting entries.
 
 ## Endpoints
 
@@ -179,16 +186,17 @@ All paths below are relative to `/api/v1`. Unless marked public, endpoints requi
 | `POST /auth/login` | Public, CSRF protected | Start an authenticated session |
 | `POST /auth/logout` | Authenticated | End the current session |
 | `GET /auth/me` | Authenticated | Return the current user's profile and role |
+| `POST /auth/change-password` | Authenticated | Change the current user's password after verifying the current password |
 
 ### Medicines
 
 | Method and path | Permission | Purpose |
 | --- | --- | --- |
 | `GET /medicines` | Admin, staff | Search and page through active medicines |
-| `POST /medicines` | Admin | Create a medicine |
+| `POST /medicines` | Admin, staff | Create a medicine |
 | `GET /medicines/{medicineId}` | Admin, staff | Read a medicine and current stock total |
-| `PATCH /medicines/{medicineId}` | Admin | Update catalog fields |
-| `POST /medicines/{medicineId}/archive` | Admin | Stop new use without deleting sales history |
+| `PATCH /medicines/{medicineId}` | Admin, staff | Update catalog fields |
+| `POST /medicines/{medicineId}/archive` | Admin, staff | Stop new use without deleting sales history |
 
 `GET /medicines` supports `q`, `active`, `lowStock`, `expiresBefore`, `page`, and `perPage`. Do not hard-delete a medicine referenced by stock or sales history.
 
@@ -201,7 +209,7 @@ Create/update fields are `genericName`, `brandName`, `description`, `dosageForm`
 | `GET /inventory` | Admin, staff | List on-hand totals, low-stock items, and expiry summaries |
 | `GET /inventory/lots` | Admin, staff | Search lots by medicine, expiry, and availability |
 | `POST /inventory/receipts` | Admin, staff | Receive stock and create lots |
-| `POST /inventory/adjustments` | Admin | Record a reasoned correction against one or more lots |
+| `POST /inventory/adjustments` | Admin, staff | Record a reasoned correction against one or more lots |
 | `GET /inventory/movements` | Admin, staff | Read the append-only stock movement history |
 
 Receipt request:
@@ -240,9 +248,12 @@ Adjustment reasons are `stock_count`, `damage`, `expiry`, and `correction`. Ever
 | Method and path | Permission | Purpose |
 | --- | --- | --- |
 | `GET /sales` | Admin, staff | Search sales by date, status, or creator |
-| `POST /sales` | Admin, staff | Create and complete a sale |
+| `POST /sales` | Admin, staff | Create an open, unpaid sale/cart with its initial items |
+| `POST /sales/{saleId}/items` | Admin, staff | Add items to an open, unpaid sale/cart |
+| `DELETE /sales/{saleId}/items/{saleItemId}` | Admin, staff | Remove an item from an open, unpaid sale/cart |
 | `GET /sales/{saleId}` | Admin, staff | Read a sale and its line items |
-| `POST /sales/{saleId}/cancel` | Admin, staff | Cancel a sale and record compensating stock movements |
+| `POST /sales/{saleId}/mark-paid` | Admin, staff | Preserve the current paid/unpaid transition without adding payment records |
+| `POST /sales/{saleId}/cancel` | Admin, staff | Cancel an unpaid sale and record compensating stock movements |
 
 Create request:
 
@@ -257,7 +268,13 @@ Create request:
 }
 ```
 
-The client does not submit prices or totals. The server loads current prices, validates quantities, chooses eligible lots using FEFO, computes totals, and commits the sale and stock movements atomically. Require an `Idempotency-Key` header on sale creation so retrying a timed-out request cannot create a duplicate sale.
+The client does not submit prices or totals. The server loads current prices, validates quantities, chooses eligible lots using FEFO, computes totals, and commits the sale and stock movements atomically. A newly created sale is `open` and `unpaid`; its items reserve/decrement stock as in the current workflow. Require an `Idempotency-Key` header on sale creation and item addition so retrying a timed-out request cannot duplicate a sale or line.
+
+`POST /sales/{saleId}/items` accepts one item using the same `{ "medicineId": 42, "quantity": 2 }` shape. The sale must still be open and unpaid.
+
+`GET /sales` supports `paymentStatus=unpaid|paid`, `state=open|completed|cancelled`, `from`, `to`, `createdBy`, `page`, and `perPage`. Removing a cart line is allowed only while the sale is open and unpaid. The API marks the line removed and creates a compensating stock movement rather than erasing its audit history.
+
+`POST /sales/{saleId}/mark-paid` changes that sale's payment status to `paid` and state to `completed`. It does not record how money was collected. Repeating the request for a paid sale returns the current sale without creating a second transition. This replaces the legacy action that marks every unpaid line paid at once.
 
 Cancel request:
 
@@ -267,7 +284,7 @@ Cancel request:
 }
 ```
 
-Cancellation preserves the sale and its original line items, records who cancelled it and why, and restores stock through new movements. Repeating a cancellation does not restore stock a second time. A completed sale is never removed with `DELETE`.
+Cancellation preserves the sale and its original line items, records who cancelled it and why, and restores stock through new movements. V1 allows cancellation only while the sale is open and unpaid. Repeating a cancellation does not restore stock a second time. A sale is never removed with `DELETE`.
 
 ### Staff accounts
 
@@ -277,8 +294,6 @@ Cancellation preserves the sale and its original line items, records who cancell
 | `POST /users` | Admin | Create an account |
 | `GET /users/{userId}` | Admin | Read an account |
 | `PATCH /users/{userId}` | Admin | Update name, role, or active state |
-| `POST /auth/change-password` | Authenticated | Change the current user's password |
-
 Create request fields are `username`, `fullName`, `password`, and `role`. Roles are `admin` or `staff`. The password-change request contains `currentPassword` and `newPassword`. Deactivate accounts instead of deleting users referenced by sales or inventory movements. Password reset for another user requires a separate audited workflow and is not part of this contract.
 
 ### Reports
@@ -290,33 +305,69 @@ Create request fields are `username`, `fullName`, `password`, and `role`. Roles 
 
 Report endpoints accept `from` and `to` dates and return aggregate data, not payment reconciliation. Inventory reports accept `lowStock` and `expiresBefore`. Reports are read-only and use the same pagination conventions when returning row-level results.
 
+### Backups and server time
+
+| Method and path | Permission | Purpose |
+| --- | --- | --- |
+| `POST /backups` | Admin, staff | Request a database backup job |
+| `GET /backups/{backupId}` | Admin | Read backup job status and metadata |
+| `GET /backups/{backupId}/download` | Admin | Download a completed backup |
+| `GET /system/time` | Admin, staff | Return current server time for the legacy clock widget |
+
+Backup requests return `202 Accepted` with a job ID. Store backup files outside the public web root, encrypt them at rest, audit requests and downloads, and never return SQL contents in an API response. The current code creates local backup files; the target API must keep this capability private and permission-checked. The system-time response is `{"data":{"now":"2026-09-18T02:00:00Z"}}`.
+
 ## Inventory and sales invariants
 
 - Quantities are positive integers for receipts and sale lines. Adjustment deltas may be positive or negative but must leave a lot at zero or above.
 - Expired and depleted lots cannot fulfill sales.
 - A sale fails with `409 insufficient_stock` if eligible stock is not available; no partial sale or stock change is committed.
 - Receipt, adjustment, sale, and cancellation writes are transactional and create immutable movements.
-- Sale creation and stock receipt accept idempotency keys. Repeating a key with the same request returns the original result; reusing it with a different request returns `409 idempotency_key_reused`.
+- Sale creation, sale-item addition, and stock receipt accept idempotency keys. Repeating a key with the same request returns the original result; reusing it with a different request returns `409 idempotency_key_reused`.
 - Store all timestamps in UTC and convert for display in the frontend.
 - Keep an audit record for account changes, inventory adjustments, and sale cancellation.
 
 ## Current PHP behavior and target mapping
 
-The repository currently contains server-rendered PHP applications with direct `mysql_*` database calls. It has no JSON REST API. `MyLightDrugstore/` contains the login page plus duplicated administrator and staff areas; `pharmacy/` is another application copy.
+The current applications are server-rendered PHP pages that call MySQL directly; they do not expose a JSON REST API. `MyLightDrugstore/` contains the login page and duplicated administrator and staff areas. `pharmacy/` is a standalone copy. The mapping below covers every current user-facing PHP page, form action, print view, and DataTables fragment in both application copies. Each current business action is carried into the target system. Page responses become React routes/components; data reads and mutations become the Laravel API endpoints described above. This is a behavior-preservation map, not a promise to keep `.php` URLs as the permanent API paths.
 
-| Existing pages or behavior | Target API area | Notes for the refactor |
+Use these path prefixes in the table: `M/` = `MyLightDrugstore/`, `A/` = `M/administrator/`, `S/` = `M/staff/`, and `P/` = `pharmacy/`. A prefix such as `A+S+P/` means the same filename exists under all three paths; prefixes are combined only where that file exists. When multiple filenames follow a prefix, that prefix applies to each filename in the list.
+
+| Existing route/action | Behavior carried forward | Target React route or API |
 | --- | --- | --- |
-| `MyLightDrugstore/index.php`, `logout.php` | Authentication | Current login uses PHP sessions and role-specific legacy account fields. |
-| `administrator/` and `staff/` `inventoryItems.php`, `editInventory.php`, `updateQuantity.php`, `deleteInventory.php` | Medicines and Inventory | The same pages are duplicated. Target authorization is enforced by Laravel policies. |
-| `itemForPurchase.php`, `inventoryStatus.php` | Inventory and Reports | Current low-stock and inventory views become filters and report resources. |
-| `tbldrugporeceipt` table; `purchaseOrderMaintenance.php` | Inventory receipts | Receipt data exists in the schema, but the maintenance page is only a placeholder. Supplier purchase orders remain deferred. |
-| `salesOrderEntry.php`, `cart.php`, `orderProcessing.php`, `cancelOrder.php` | Sales | Current records are sale lines without a proper sale header. Cancellation currently deletes lines and restores aggregate stock. |
-| `updateOrder.php` | Later finance/payment work | Current code marks all `UNPAID` lines as `PAID`; this global status update is not part of the v1 API. |
-| `accounts.php`, `userAccounts.php`, `deleteUserAccount.php`, `changeAdminAccount.php` | Staff accounts | Current account handling is legacy and must be migrated to per-user identities with hashed passwords. |
-| `reports.php`, `transactionDetails.php`, `printTransaction.php` | Reports | Target reports are read-only API resources with explicit date filters. |
+| `M/index.php`, `M/logout.php` | Enter the MyLightDrugstore app, authenticate, and log out | React `/login`; `GET /auth/csrf`, `POST /auth/login`, `POST /auth/logout`, `GET /auth/me` |
+| `A+S/index.php`, `P/index.php` | Admin/staff dashboard or standalone-app dashboard | React `/dashboard`; `GET /medicines` and inventory/report queries as needed |
+| `A+S+P/inventory.php` | Inventory navigation and entry | React `/inventory`; `GET /inventory` |
+| `A+S+P/inventoryItems.php`, `editInventory.php`, `deleteInventory.php`, `updateInventoryItems.php` | List, add, edit, and remove catalog items | React `/catalog/medicines`; `GET/POST/PATCH /medicines`, `POST /medicines/{medicineId}/archive` |
+| `A+S+P/inventoryStatus.php` | Inventory status view | React inventory report; `GET /inventory` and `GET /reports/inventory` |
+| `A+S/itemForPurchase.php` | List items below the current low-stock threshold | React low-stock filter; `GET /inventory?lowStock=true` or `GET /reports/inventory?lowStock=true` |
+| `A+S+P/updateQuantity.php` | Set a medicine's stock quantity from the maintenance screen | React stock-adjustment form; `POST /inventory/adjustments`. The API records a reasoned, lot-level adjustment instead of overwriting an aggregate quantity. |
+| `A+S+P/purchaseOrderMaintenance.php` | Show the current stock-maintenance table and link to quantity updates | React `/inventory/receipts`; `GET /inventory/lots`, `POST /inventory/receipts`, and `POST /inventory/adjustments`. The current page does not create supplier purchase orders; that workflow remains deferred. |
+| `A+S+P/orderProcessing.php` | Navigate to stock maintenance and sales entry | React `/operations`; links to the inventory and sales features above |
+| `A+S+P/salesOrderEntry.php`, `popUpSalesOrderEntry.php` | Find a medicine and add a requested quantity to an order | React sale-entry form and medicine picker; `GET /medicines`, `POST /sales`, `POST /sales/{saleId}/items` |
+| `A+S+P/cart.php` | Read the unpaid order/cart | React `/sales/cart`; `GET /sales?paymentStatus=unpaid` |
+| `A+S+P/cancelOrder.php` | Remove one unpaid cart line and return its stock | Cart-line action; `DELETE /sales/{saleId}/items/{saleItemId}`. Keep an audit record and compensating stock movement. |
+| `A+S+P/updateOrder.php` | Mark current unpaid order lines paid | `POST /sales/{saleId}/mark-paid`. The paid/unpaid capability remains; the target scopes it to one sale rather than changing every unpaid line globally. |
+| `A+S+P/printOrder.php` | Print unpaid order lines | React `/sales/print`; data from `GET /sales?paymentStatus=unpaid` or `GET /sales/{saleId}`; browser print handles layout |
+| `A+S+P/transactionDetails.php`, `printTransaction.php` | Select a date, view transaction details, and print the result | React `/reports/sales` and print view; `GET /reports/sales?from=...&to=...` and `GET /sales` |
+| `A+S+P/reports.php` | Navigate to inventory and transaction reports | React `/reports`; `GET /reports/inventory`, `GET /reports/sales` |
+| `A/accounts.php` | Navigate to user management and administrator account settings | React `/admin/users` and `/settings/security` |
+| `A/userAccounts.php`, `A/deleteUserAccount.php` | View, create, and remove staff accounts | React `/admin/users`; `GET/POST/PATCH /users`. Removal becomes deactivation so history remains linked. |
+| `A/changeAdminAccount.php` | Change the signed-in administrator password | `POST /auth/change-password`; applies to both roles in the target system |
+| `A+S/backup.php` | Request a database dump | `POST /backups`; admin and staff may request one, while only admin can list or download backup artifacts |
+| `A+S+P/refresh-me.php` | Return the server date/time for the legacy clock | `GET /system/time`; React renders the value |
+| `A/dataTables/dataTables.php`, `S/dataTables/dataTables.php`, `P/dataTables/dataTables.php` | Return the dashboard medicine table fragment | `GET /medicines`; React dashboard table |
+| `A/dataTables/purchaseOrderMaintenanceDatatables.php`, `S/dataTables/purchaseOrderMaintenanceDatatables.php`, `P/dataTables/purchaseOrderMaintenanceDatatables.php` | Return the stock-maintenance table and quantity-update links | `GET /inventory` and `GET /inventory/lots`; React inventory table and adjustment action |
+| `A/dataTables/SalesOrderEntryDataTables.php`, `S/dataTables/SalesOrderEntryDataTables.php`, `P/dataTables/SalesOrderEntryDataTables.php` | Return medicine-search results for the sales-entry popup | `GET /medicines`; React medicine picker |
+| `A/dataTables/updateDatatables.php`, `S/dataTables/updateDatatables.php`, `P/dataTables/updateDatatables.php` | Return the catalog table with edit and delete links | `GET /medicines`; React catalog table and edit/archive actions |
+
+The standalone `P/` copy does not contain user-account, backup, or `itemForPurchase.php` pages. It has a dashboard at `P/index.php`; only `M/index.php` is the login form.
+
+The following PHP files are implementation includes, not business endpoints: each copy's `conf.php`, `header.php`, `footer.php`, `navigation.php`, and `dataTables/conf.php`. Their responsibilities move to Laravel configuration/middleware and React FSD app/layout/shared slices. Do not expose the old configuration or HTML include files as API routes.
+
+No legacy user action is retired until its mapped React workflow and API behavior pass feature-parity review. During cutover, keep a redirect or compatibility adapter for any old `.php` URL still used by a person or external link; retire it only after that usage has been checked. Security fixes may change unsafe mechanics while retaining the action: deletes become archive/deactivation/void records, stock writes become audited movements, and global payment marking becomes a per-sale transition.
 
 The legacy schema uses a string for medicine price, stores aggregate stock on the medicine row, and has no sale header. The refactor must use decimal money, lot-based stock, and first-class sale records. Historical transaction lines cannot be grouped into reliable sale headers without auditing the source data. Revalidate and hash credentials; do not copy legacy password values into the new user table.
 
 ## Deferred modules
 
-The v1 API does not define resources or endpoints for suppliers, purchase orders, branches, customers, payments, cash drawers, invoices, or accounting. Add each only with its own data model, permissions, and workflows. Branch support must scope every medicine, lot, sale, user permission, and report to a branch before multi-store use is enabled.
+The v1 API does not define resources or endpoints for suppliers, purchase orders, branches, customers, payment records, cash drawers, invoices, or accounting. Add each only with its own data model, permissions, and workflows. Branch support must scope every medicine, lot, sale, user permission, and report to a branch before multi-store use is enabled.
