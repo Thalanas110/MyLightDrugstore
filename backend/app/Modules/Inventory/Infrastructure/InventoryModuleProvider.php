@@ -8,11 +8,13 @@ use App\Modules\Inventory\Application\InventoryAdjustmentWriter;
 use App\Modules\Inventory\Application\InventoryLotQuery;
 use App\Modules\Inventory\Application\InventoryMovementQuery;
 use App\Modules\Inventory\Application\InventoryReceiptWriter;
+use App\Modules\Inventory\Application\InventoryStockReserver;
 use App\Modules\Inventory\Application\InventorySummaryQuery;
 use App\Modules\Inventory\Infrastructure\Persistence\EloquentInventoryAdjustmentWriter;
 use App\Modules\Inventory\Infrastructure\Persistence\EloquentInventoryLotQuery;
 use App\Modules\Inventory\Infrastructure\Persistence\EloquentInventoryMovementQuery;
 use App\Modules\Inventory\Infrastructure\Persistence\EloquentInventoryReceiptWriter;
+use App\Modules\Inventory\Infrastructure\Persistence\EloquentInventoryStockReserver;
 use App\Modules\Inventory\Infrastructure\Persistence\EloquentInventorySummaryQuery;
 use App\Modules\ModuleName;
 use App\Modules\ModuleProvider;
@@ -32,5 +34,6 @@ final class InventoryModuleProvider implements ModuleProvider
         $container->bind(InventoryMovementQuery::class, EloquentInventoryMovementQuery::class);
         $container->bind(InventoryAdjustmentWriter::class, EloquentInventoryAdjustmentWriter::class);
         $container->bind(InventorySummaryQuery::class, EloquentInventorySummaryQuery::class);
+        $container->bind(InventoryStockReserver::class, EloquentInventoryStockReserver::class);
     }
 }

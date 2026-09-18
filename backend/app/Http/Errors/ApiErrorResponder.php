@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Errors;
 
 use App\Http\Middleware\AttachRequestId;
+use App\Modules\Inventory\Domain\InsufficientStockException;
+use App\Modules\Sales\Domain\IdempotencyKeyReusedException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -83,6 +85,24 @@ final class ApiErrorResponder
                 Response::HTTP_NOT_FOUND,
                 'not_found',
                 'The requested resource was not found.',
+            );
+        }
+
+        if ($exception instanceof InsufficientStockException) {
+            return $this->error(
+                $request,
+                Response::HTTP_CONFLICT,
+                'insufficient_stock',
+                'There is not enough eligible stock for this sale.',
+            );
+        }
+
+        if ($exception instanceof IdempotencyKeyReusedException) {
+            return $this->error(
+                $request,
+                Response::HTTP_CONFLICT,
+                'idempotency_key_reused',
+                'The idempotency key was already used for a different request.',
             );
         }
 

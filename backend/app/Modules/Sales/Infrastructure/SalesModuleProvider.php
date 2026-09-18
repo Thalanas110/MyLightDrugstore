@@ -6,6 +6,8 @@ namespace App\Modules\Sales\Infrastructure;
 
 use App\Modules\ModuleName;
 use App\Modules\ModuleProvider;
+use App\Modules\Sales\Application\SaleCreator;
+use App\Modules\Sales\Infrastructure\Persistence\EloquentSaleCreator;
 use Illuminate\Contracts\Container\Container;
 
 final class SalesModuleProvider implements ModuleProvider
@@ -15,5 +17,8 @@ final class SalesModuleProvider implements ModuleProvider
         return ModuleName::Sales;
     }
 
-    public function register(Container $container): void {}
+    public function register(Container $container): void
+    {
+        $container->bind(SaleCreator::class, EloquentSaleCreator::class);
+    }
 }

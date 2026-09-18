@@ -8,10 +8,12 @@ use App\Modules\Catalog\Application\MedicineArchiver;
 use App\Modules\Catalog\Application\MedicineCreator;
 use App\Modules\Catalog\Application\MedicineListQuery;
 use App\Modules\Catalog\Application\MedicineUpdater;
+use App\Modules\Catalog\Application\SaleMedicinePriceQuery;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentMedicineArchiver;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentMedicineCreator;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentMedicineListQuery;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentMedicineUpdater;
+use App\Modules\Catalog\Infrastructure\Persistence\EloquentSaleMedicinePriceQuery;
 use App\Modules\ModuleName;
 use App\Modules\ModuleProvider;
 use Illuminate\Contracts\Container\Container;
@@ -29,5 +31,6 @@ final class CatalogModuleProvider implements ModuleProvider
         $container->bind(MedicineArchiver::class, EloquentMedicineArchiver::class);
         $container->bind(MedicineUpdater::class, EloquentMedicineUpdater::class);
         $container->bind(MedicineListQuery::class, EloquentMedicineListQuery::class);
+        $container->bind(SaleMedicinePriceQuery::class, EloquentSaleMedicinePriceQuery::class);
     }
 }
