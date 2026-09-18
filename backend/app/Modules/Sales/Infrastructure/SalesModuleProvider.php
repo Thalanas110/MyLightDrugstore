@@ -11,11 +11,13 @@ use App\Modules\Sales\Application\SaleDetailsQuery;
 use App\Modules\Sales\Application\SaleItemAdder;
 use App\Modules\Sales\Application\SaleItemRemover;
 use App\Modules\Sales\Application\SaleListQuery;
+use App\Modules\Sales\Application\SalePaymentMarker;
 use App\Modules\Sales\Infrastructure\Persistence\EloquentSaleCreator;
 use App\Modules\Sales\Infrastructure\Persistence\EloquentSaleDetailsQuery;
 use App\Modules\Sales\Infrastructure\Persistence\EloquentSaleItemAdder;
 use App\Modules\Sales\Infrastructure\Persistence\EloquentSaleItemRemover;
 use App\Modules\Sales\Infrastructure\Persistence\EloquentSaleListQuery;
+use App\Modules\Sales\Infrastructure\Persistence\EloquentSalePaymentMarker;
 use Illuminate\Contracts\Container\Container;
 
 final class SalesModuleProvider implements ModuleProvider
@@ -32,5 +34,6 @@ final class SalesModuleProvider implements ModuleProvider
         $container->bind(SaleItemRemover::class, EloquentSaleItemRemover::class);
         $container->bind(SaleDetailsQuery::class, EloquentSaleDetailsQuery::class);
         $container->bind(SaleListQuery::class, EloquentSaleListQuery::class);
+        $container->bind(SalePaymentMarker::class, EloquentSalePaymentMarker::class);
     }
 }

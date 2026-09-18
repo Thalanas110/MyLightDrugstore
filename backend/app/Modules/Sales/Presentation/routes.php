@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\Api\PendingApiEndpointController;
 use App\Modules\Sales\Presentation\AddSaleItemController;
 use App\Modules\Sales\Presentation\CreateSaleController;
+use App\Modules\Sales\Presentation\MarkSalePaidController;
 use App\Modules\Sales\Presentation\RemoveSaleItemController;
 use App\Modules\Sales\Presentation\SaleDetailController;
 use App\Modules\Sales\Presentation\SaleListController;
@@ -25,7 +26,7 @@ Route::delete('/sales/{saleId}/items/{saleItemId}', RemoveSaleItemController::cl
 Route::get('/sales/{saleId}', SaleDetailController::class)
     ->middleware('auth:web')
     ->name('api.v1.sales.show');
-Route::post('/sales/{saleId}/mark-paid', PendingApiEndpointController::class)
+Route::post('/sales/{saleId}/mark-paid', MarkSalePaidController::class)
     ->middleware('auth:web')
     ->name('api.v1.sales.mark-paid');
 Route::post('/sales/{saleId}/cancel', PendingApiEndpointController::class)
