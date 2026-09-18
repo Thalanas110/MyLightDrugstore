@@ -6,6 +6,8 @@ namespace App\Modules\Transport\Infrastructure;
 
 use App\Modules\ModuleName;
 use App\Modules\ModuleProvider;
+use App\Modules\Transport\Domain\Crypto\AuthenticatedEncryptor;
+use App\Modules\Transport\Infrastructure\Crypto\OpenSslAes256GcmCipher;
 use Illuminate\Contracts\Container\Container;
 
 final class TransportModuleProvider implements ModuleProvider
@@ -15,5 +17,8 @@ final class TransportModuleProvider implements ModuleProvider
         return ModuleName::Transport;
     }
 
-    public function register(Container $container): void {}
+    public function register(Container $container): void
+    {
+        $container->bind(AuthenticatedEncryptor::class, OpenSslAes256GcmCipher::class);
+    }
 }
