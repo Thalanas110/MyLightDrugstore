@@ -276,6 +276,8 @@ Receipt request:
 }
 ```
 
+The server returns `201` with `receiptId`, `receivedAt`, `itemCount`, and `totalQuantity`. Each item creates an expiring lot and a positive receipt movement tied to the acting user. Receipt, lots, and movements are committed together.
+
 Adjustment request:
 
 ```json
